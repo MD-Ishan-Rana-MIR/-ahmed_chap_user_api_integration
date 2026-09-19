@@ -18,6 +18,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import CartSkeleton from "../../../components/ui/skeleton/CartSkeleton";
 import { errorMsg } from "../../../lib/msg/errorMsg";
 import { successMsg } from "../../../lib/msg/successMsg";
 import tw from "../../../lib/tailwind";
@@ -99,26 +100,17 @@ export default function Cart() {
       { cancelable: true },
     );
   };
+  // =============================================  Address Api =============================================
 
-  if (isLoading) {
-    return (
-      <View style={tw`flex-1 bg-white items-center justify-center`}>
-        <ActivityIndicator size="large" color="#587511" />
-      </View>
-    );
+  const { data: addData, isLoading: addLaoding } = useGetAllAddressQuery({});
+  const addressList = addData?.data?.addresses || [];
+
+  const addressData = addressList.at(-1);
+  if (isLoading || addLaoding) {
+    return <CartSkeleton />;
   }
 
   const hasItems = (summary?.items_count || 0) > 0;
-
-  // =============================================  Address Api =============================================
-
-  const { data: addData } = useGetAllAddressQuery({});
-  const addressList = addData?.data?.addresses || [];
-
-  // ২. Last Index-এর Data টি নিন
-  const addressData = addressList.at(-1);
-
-  console.log(addressData);
 
   return (
     <View style={tw`flex-1 bg-white`}>

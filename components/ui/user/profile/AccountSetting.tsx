@@ -1,7 +1,11 @@
+import { useDeleteProfileMutation } from "@/redux/authApi";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SvgXml } from "react-native-svg";
 import { lockIcon, profileDelete, rightBackIcon } from "../../../../lib/icon";
+import { errorMsg } from "../../../../lib/msg/errorMsg";
+import { successMsg } from "../../../../lib/msg/successMsg";
 import tw from "../../../../lib/tailwind";
 import BackButton from "../../BackButton";
 
@@ -9,6 +13,45 @@ export default function AccountSetting() {
   const handleNavigate = () => {
     router.push(`/link/${"password-change"}` as any);
   };
+
+  const [deleteProfile] = useDeleteProfileMutation();
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const res = await deleteProfile({}).unwrap();
+              if (res) {
+                await AsyncStorage.removeItem("token");
+                await AsyncStorage.removeItem("expo-token");
+                await AsyncStorage.removeItem("forget-password-token");
+
+                router.push("/(splash-screen)");
+                return successMsg(res?.message);
+              }
+            } catch (error: any) {
+              const errorMessage =
+                error?.data?.message ||
+                error?.message ||
+                "An unexpected error occurred.";
+              return errorMsg(errorMessage);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View style={tw`flex-1 bg-white`}>
       <BackButton title="Account Settings" showBackButton={true} />
@@ -41,7 +84,7 @@ export default function AccountSetting() {
           <SvgXml xml={rightBackIcon} width={16} height={16} />
         </TouchableOpacity>
         <TouchableOpacity
-          //   onPress={onChangePassword}
+          onPress={handleDeleteAccount}
           activeOpacity={0.7}
           style={tw`bg-[#FCFCFC] rounded-b-[12px] p-4 border border-[#E5E7EB] flex-row items-center justify-between shadow-sm`}
         >
