@@ -1,0 +1,1 @@
+export const apiUrl = `https://chap-plus-api.omarfaruk.me/api`

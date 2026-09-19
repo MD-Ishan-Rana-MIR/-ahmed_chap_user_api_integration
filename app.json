@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "chap-user-app",
+    "slug": "chap-user-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/app-icon/android.png",
+    "scheme": "chapapp",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/app-icon/ios.png",
+      "config": {
+        "googleMapsApiKey": "AIzaSyDpXUCYWUfawKwLO0KlT0V9Y1t2DTBNx-A"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/app-icon/splash.png",
+        "backgroundImage": "./assets/app-icon/splash.png",
+        "monochromeImage": "./assets/app-icon/splash.png"
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDpXUCYWUfawKwLO0KlT0V9Y1t2DTBNx-A"
+        }
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.chalapus.chapuserapp"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/app-icon/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#fff",
+          "image": "./assets/app-icon/splash.png",
+          "imageWidth": 76
+        }
+      ],
+      [
+        "expo-status-bar",
+        {
+          "hidden": false,
+          "style": "dark"
+        }
+      ],
+      "expo-font",
+      "@react-native-community/datetimepicker"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
