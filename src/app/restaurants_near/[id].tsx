@@ -8,9 +8,9 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
-  Text,
   View,
 } from "react-native";
+import { NotFoundState } from "../../../components/NotFoundState";
 import BackButton from "../../../components/ui/BackButton";
 import NearbyRestaurantCard from "../../../components/ui/resturant/NearbyRestaurantCard";
 import PopularResturantSkeleton from "../../../components/ui/skeleton/PopularResturantSkeleton";
@@ -132,11 +132,7 @@ export default function NearRestaurants() {
         }
         ListEmptyComponent={() =>
           !isFetching ? (
-            <View style={tw`items-center justify-center py-10`}>
-              <Text style={tw`text-gray-500 font-medium`}>
-                No nearby restaurants found.
-              </Text>
-            </View>
+            <NotFoundState title="No nearby restaurants found." message="" />
           ) : null
         }
       />

@@ -463,6 +463,9 @@ export default function ProductDetails() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          onPress={() => {
+            handleAddToCart(data?.data?.product?.id);
+          }}
           activeOpacity={0.4}
           style={tw`flex-1 bg-[#5B7410] py-3.5 rounded-full items-center justify-center`}
         >

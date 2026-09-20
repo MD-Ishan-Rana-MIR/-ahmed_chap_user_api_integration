@@ -1,18 +1,17 @@
 import { useUserProfileQuery } from "@/redux/authApi";
 import { useGetNearHotelsQuery } from "@/redux/hotelApi";
-import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  RefreshControl,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -91,11 +90,11 @@ const HomeScreen = () => {
   const hotelList = nearData?.data?.properties?.data || [];
   const nLastPage = nearData?.data?.properties?.last_page || 1;
 
-  const handleNearLoadMore = () => {
+  const handleNearLoadMore = useCallback(() => {
     if (!nearFetching && npage < nLastPage) {
       nsetPage((prevPage) => prevPage + 1);
     }
-  };
+  }, [nearFetching, npage, nLastPage]);
 
   const handleRefresh = () => {
     nsetPage(1);
@@ -117,92 +116,75 @@ const HomeScreen = () => {
     <View style={tw`flex-1 bg-white`}>
       <SafeAreaView style={tw`flex-1 bg-white`}>
         <StatusBar style="dark" />
+
+        {/* ==================== FIXED TOP HEADER BAR ==================== */}
+        <View
+          style={tw`px-5 py-3 flex-row items-center justify-between bg-white z-10`}
+        >
+          {/* User Info Section */}
+          <View style={tw`flex-row items-center gap-x-3`}>
+            <Image
+              source={
+                data?.data?.profile_photo_url
+                  ? { uri: data?.data.profile_photo_url }
+                  : require("../../../assets/images/profile.png")
+              }
+              style={tw`w-12 h-12 rounded-full`}
+              resizeMode="cover"
+            />
+
+            <View>
+              {/* Header Greeting */}
+              <Text style={tw`font-semibold text-base text-blackText`}>
+                {data?.data?.name}
+              </Text>
+
+              {/* Location Row */}
+              <View style={tw`flex-row items-center gap-1 mt-0.5`}>
+                <SvgXml xml={locationIcon} width={16} height={16} />
+
+                <Text style={tw`text-grayText text-sm`}>
+                  {data?.data?.address}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Notification Button Container */}
+          <TouchableOpacity
+            onPress={() => {
+              router.push("/user-notification");
+            }}
+            activeOpacity={0.7}
+            style={tw`relative w-12 h-12 bg-[#F4F4F4] rounded-full items-center justify-center`}
+          >
+            <SvgXml xml={notificationIcon} width={20} height={20} />
+
+            {/* Notification Badge / Pill */}
+            <View
+              style={tw`absolute top-2 right-2 bg-red-500 min-w-[16px] h-[16px] rounded-full items-center justify-center px-1 border-2 border-white`}
+            >
+              <Text style={tw`text-white text-[9px] font-bold leading-none`}>
+                3
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* ==================== SCROLLABLE BODY CONTENT ==================== */}
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={tw`pb-8`}
+          onScroll={handleMainScroll}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={nearFetching && npage === 1}
+              onRefresh={handleRefresh}
+              tintColor="#5B7410"
+            />
+          }
         >
-          {/* Top Header Bar */}
-          <View style={tw`px-5 mt-3 flex-row items-center justify-between`}>
-            {/* User Info Section */}
-            <View style={tw`flex-row items-center gap-x-3`}>
-              <Image
-                source={
-                  data?.data?.profile_photo_url
-                    ? { uri: data?.data.profile_photo_url }
-                    : require("../../../assets/images/profile.png")
-                }
-                style={tw`w-12 h-12 rounded-full`}
-                resizeMode="cover"
-              />
-
-              <View>
-                {/* Header Greeting */}
-                <Text style={tw`font-semibold text-base text-blackText`}>
-                  {data?.data?.name}
-                </Text>
-
-                {/* Location Row */}
-                <View style={tw`flex-row items-center gap-1 mt-0.5`}>
-                  <SvgXml xml={locationIcon} width={16} height={16} />
-
-                  <Text style={tw`text-grayText text-sm`}>
-                    {data?.data?.address}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Notification Button Container */}
-            <TouchableOpacity
-              onPress={() => {
-                router.push("/user-notification");
-              }}
-              activeOpacity={0.7}
-              style={tw`relative w-12 h-12 bg-[#F4F4F4] rounded-full items-center justify-center`}
-            >
-              <SvgXml xml={notificationIcon} width={20} height={20} />
-
-              {/* Notification Badge / Pill */}
-              <View
-                style={tw`absolute top-2 right-2 bg-red-500 min-w-[16px] h-[16px] rounded-full items-center justify-center px-1 border-2 border-white`}
-              >
-                <Text style={tw`text-white text-[9px] font-bold leading-none`}>
-                  3
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Search Box */}
-          <View style={tw`px-5 my-5`}>
-            <View
-              style={tw`flex-row items-center bg-[#F4F4F4] rounded-full px-4 py-1 border border-transparent focus:border-[#5B7410]`}
-            >
-              {/* Left Search Icon */}
-              <Ionicons name="search-outline" size={20} color="#757575" />
-
-              {/* Text Input */}
-              <TextInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search..."
-                placeholderTextColor="#9CA3AF"
-                style={tw`flex-1 ml-2.5 text-sm text-gray-800  font-normal`}
-                returnKeyType="search"
-              />
-
-              {/* Clear Button */}
-              {searchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={handleClearSearch}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
           {/* Promo Slider Banner */}
           <View style={tw`mt-1`}>
             <PromoSlider />
@@ -210,22 +192,22 @@ const HomeScreen = () => {
 
           <SectionHeader title="Available Services" onViewAll={allService} />
 
-          {/* Service List  */}
-
+          {/* Service List */}
           <ServicesGrid />
 
+          {/* Track Order Section */}
           <View style={tw`px-5 pt-5`}>
             <View
-              style={tw`bg-[#EFF1E7] rounded-[8px] border border-[#5B74101F] px-5 py-2 flex-row  items-center justify-between `}
+              style={tw`bg-[#EFF1E7] rounded-[8px] border border-[#5B74101F] px-5 py-2 flex-row items-center justify-between`}
             >
-              <View style={tw` `}>
+              <View>
                 <Text
-                  style={tw`text-blackText font-Manrope-Bold.ttf text-[16px] mb-0.5 `}
+                  style={tw`text-blackText font-Manrope-Bold.ttf text-[16px] mb-0.5`}
                 >
                   Track your order
                 </Text>
                 <Text
-                  style={tw`text-[#858585] text-xs font-Manrope-Regular.ttf `}
+                  style={tw`text-[#858585] text-xs font-Manrope-Regular.ttf`}
                 >{`Stay updated on your\ndeliveries in real time`}</Text>
                 <View style={tw`w-32 mt-3`}>
                   <Button
@@ -239,14 +221,13 @@ const HomeScreen = () => {
               <View>
                 <Image
                   source={require("../../../assets/hotel/bike.png")}
-                  style={tw` w-[165px] h-[123px] `}
+                  style={tw`w-[165px] h-[123px]`}
                 />
               </View>
             </View>
           </View>
 
-          {/* Hotel List  */}
-
+          {/* Hotel List */}
           <View style={tw`mt-6`}>
             <SectionHeader title="Hotel Near you" onViewAll={onViewAll} />
           </View>
@@ -262,7 +243,7 @@ const HomeScreen = () => {
 
             {nearFetching && npage > 1 && (
               <View style={tw`py-4 items-center justify-center`}>
-                <ActivityIndicator size="small" color="#F95700" />
+                <ActivityIndicator size="small" color="#5B7410" />
               </View>
             )}
           </View>

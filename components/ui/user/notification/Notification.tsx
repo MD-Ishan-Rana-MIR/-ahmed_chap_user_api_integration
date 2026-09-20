@@ -1,129 +1,200 @@
-import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import tw from "../../../../lib/tailwind";
+import { useState } from "react";
+import {
+  FlatList,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import tw from "twrnc";
+
+import {
+  useGetNotificationsQuery,
+  useMarkAllAsReadMutation,
+  useMarkAsReadMutation,
+} from "@/redux/userNotificationAp";
+import { errorMsg } from "../../../../lib/msg/errorMsg";
+import { successMsg } from "../../../../lib/msg/successMsg";
+import { NotificationItem } from "../../../../lib/type/notificationType";
+import { NotFoundState } from "../../../NotFoundState";
 import BackButton from "../../BackButton";
+import {
+  NotificationSkeletonCard,
+  NotificationSkeletonList,
+} from "../../skeleton/NotificationSkeletonList";
 
-interface NotificationItemProps {
-  text: React.ReactNode;
-  time: string;
-}
+export default function NotificationScreen() {
+  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [page, setPage] = useState<number>(1);
 
-const NotificationItem = ({ text, time }: NotificationItemProps) => {
-  return (
-    <View style={tw`flex-row items-start gap-3.5 mb-6`}>
-      {/* Icon Circle */}
-      <View
-        style={tw`w-11 h-11 rounded-full bg-[#F4F4F6] items-center justify-center mt-0.5`}
-      >
-        <Ionicons name="notifications-outline" size={20} color="#1F2937" />
-      </View>
+  const { data, isFetching, isLoading, refetch } = useGetNotificationsQuery({
+    page,
+    per_page: 15,
+    filter,
+  });
 
-      {/* Text Content */}
-      <View style={tw`flex-1`}>
-        <Text
-          style={tw`text-sm text-[#222222] font-Manrope-Regular.ttf leading-5`}
-        >
-          {text}
-        </Text>
-        <Text
-          style={tw`text-[10px] text-[#858585] font-Manrope-Regular.ttf mt-1.5`}
-        >
-          {time}
-        </Text>
-      </View>
-    </View>
-  );
-};
+  const [markAsRead] = useMarkAsReadMutation();
+  const [markAllAsRead] = useMarkAllAsReadMutation();
 
-export default function Notifications() {
-  const insets = useSafeAreaInsets();
+  const notifications = data?.data ?? [];
+  const pagination = data?.pagination;
+  const unreadCount = data?.unread_count ?? 0;
+
+  const hasMore = pagination ? page < pagination.total_pages : false;
+
+  // Handle Tab Switch
+  const handleFilterChange = (selectedFilter: "all" | "unread") => {
+    if (filter !== selectedFilter) {
+      setPage(1);
+      setFilter(selectedFilter);
+    }
+  };
+
+  // Infinite Scroll Load More
+  const handleLoadMore = () => {
+    if (!isFetching && hasMore) {
+      setPage((prev) => prev + 1);
+    }
+  };
+
+  // Pull to refresh
+  const handleRefresh = async () => {
+    if (page === 1) {
+      await refetch();
+    } else {
+      setPage(1);
+    }
+  };
+
+  // Handle Card Click
+  const handleItemPress = async (item: NotificationItem) => {
+    if (!item.read) {
+      try {
+        const res = await markAsRead({ id: item.id }).unwrap();
+        successMsg("Notification marked as read");
+        return;
+      } catch (error) {
+        return errorMsg(
+          error && typeof error === "object" && "data" in error
+            ? ((error as { data?: { message?: string } }).data?.message ??
+                String(error))
+            : error instanceof Error
+              ? error.message
+              : String(error),
+        );
+      }
+    }
+
+    // Example Navigation based on type
+    if (item.order_id) {
+      // router.push(`/order/${item.order_id}`);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllAsRead().unwrap();
+    } catch (err) {
+      console.error("Failed to mark all as read:", err);
+    }
+  };
 
   return (
     <View style={tw`flex-1 bg-white`}>
-      <BackButton title="Notifications" showBackButton={true} />
+      {/* 1. Header Bar */}
 
-      {/* Main Content Area */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw`px-5 pt-2 pb-10`}
+      <View>
+        <BackButton title="Notifications" />
+      </View>
+
+      {/* 2. Filter Tabs */}
+      <View
+        style={tw`flex-row items-center px-4 py-3  border-b border-gray-100 gap-2`}
       >
-        {/* TODAY Section Header */}
-        <View style={tw`flex-row justify-between items-center mt-2 mb-5`}>
+        <TouchableOpacity
+          onPress={() => handleFilterChange("all")}
+          style={tw`px-4 py-1.5 rounded-full ${
+            filter === "all" ? "bg-[#5B7410]" : "bg-gray-200"
+          }`}
+        >
           <Text
-            style={tw`text-sm font-Manrope-Medium.ttf text-[#484848] tracking-wider uppercase`}
+            style={tw`text-xs font-semibold ${
+              filter === "all" ? "text-white" : "text-gray-700"
+            }`}
           >
-            TODAY
+            All
           </Text>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Text style={tw`text-sm font-Manrope-Medium.ttf text-[#1A1A1A]`}>
-              Mark all as read
-            </Text>
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
 
-        {/* TODAY Items */}
-        <NotificationItem
-          text="Your order has been delivered. Take a moment to rate the merchant and share your experience."
-          time="11.00 AM"
-        />
-
-        <NotificationItem
-          text="Your hotel check-in at Grand Palace Hotel is tomorrow. Get ready for your stay."
-          time="11.00 AM"
-        />
-
-        <NotificationItem
-          text={
-            <Text>
-              Your bus from Dhaka to Chittagong departs at{" "}
-              <Text style={tw`font-bold text-[#111827]`}>8:00 AM</Text>. Don't
-              forget to arrive early.
-            </Text>
-          }
-          time="11.00 AM"
-        />
-
-        <NotificationItem
-          text="There has been an update to your hotel booking. Please review the latest booking details."
-          time="11.00 AM"
-        />
-
-        {/* YESTERDAY Section Header */}
-        <View style={tw`mt-2 mb-5`}>
-          <Text style={tw`text-sm font-semibold text-[#4B5563]`}>
-            Yesterday
+        <TouchableOpacity
+          onPress={() => handleFilterChange("unread")}
+          style={tw`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 ${
+            filter === "unread" ? "bg-[#5B7410]" : "bg-gray-200"
+          }`}
+        >
+          <Text
+            style={tw`text-xs font-semibold ${
+              filter === "unread" ? "text-white" : "text-gray-700"
+            }`}
+          >
+            Unread
           </Text>
-        </View>
+          {unreadCount > 0 && (
+            <View
+              style={tw`bg-red-500 rounded-full px-1.5 py-0.2 items-center justify-center`}
+            >
+              <Text style={tw`text-white text-[10px] font-bold`}>
+                {unreadCount}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
 
-        {/* YESTERDAY Items */}
-        <NotificationItem
-          text="Your order has been delivered. Take a moment to rate the merchant and share your experience."
-          time="11.00 AM"
-        />
-
-        <NotificationItem
-          text="Your hotel check-in at Grand Palace Hotel is tomorrow. Get ready for your stay."
-          time="11.00 AM"
-        />
-
-        <NotificationItem
-          text={
-            <Text>
-              Your bus from Dhaka to Chittagong departs at{" "}
-              <Text style={tw`font-bold text-[#111827]`}>8:00 AM</Text>. Don't
-              forget to arrive early.
-            </Text>
-          }
-          time="11.00 AM"
-        />
-
-        <NotificationItem
-          text="There has been an update to your hotel booking. Please review the latest booking details."
-          time="11.00 AM"
-        />
-      </ScrollView>
+      {/* 3. Notifications List */}
+      {isFetching && isLoading ? (
+        <>
+          <NotificationSkeletonList count={7} />
+        </>
+      ) : (
+        <>
+          <FlatList
+            style={tw`px-5 mt-5 `}
+            data={notifications}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <NotificationSkeletonCard item={item} onPress={handleItemPress} />
+            )}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.4}
+            refreshControl={
+              <RefreshControl
+                refreshing={isFetching && page === 1}
+                onRefresh={handleRefresh}
+                colors={["#5B7410"]}
+              />
+            }
+            ListEmptyComponent={
+              !isLoading ? (
+                <View style={tw`mt-20 align-center items-center`}>
+                  {/* <NotFoundState /> */}
+                  <NotFoundState
+                    title="You Have No Unread Notification"
+                    message=""
+                  />
+                </View>
+              ) : null
+            }
+            ListFooterComponent={
+              isFetching && page > 1 ? (
+                <View style={tw`py-4 items-center`}>
+                  {/* <ActivityIndicator size="small" color="#5B7410" /> */}
+                </View>
+              ) : null
+            }
+          />
+        </>
+      )}
     </View>
   );
 }
