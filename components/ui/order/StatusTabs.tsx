@@ -7,19 +7,19 @@ interface StatusTabsProps {
   tabs: TabItem[];
   activeTab: TabStatus;
   onSelectTab: (tab: TabStatus) => void;
-  getTabCount: (status: TabStatus) => number;
+  // getTabCount: (status: TabStatus) => number;
 }
 
 export const StatusTabs: React.FC<StatusTabsProps> = ({
   tabs,
   activeTab,
   onSelectTab,
-  getTabCount,
+  // getTabCount,
 }) => (
   <View style={tw`flex-row border-b border-[#DCDCDC]`}>
     {tabs.map((tab) => {
       const isActive = activeTab === tab.id;
-      const count = getTabCount(tab.id);
+      // const count = getTabCount(tab.id);
 
       return (
         <TouchableOpacity
@@ -35,7 +35,7 @@ export const StatusTabs: React.FC<StatusTabsProps> = ({
                 : "text-sm text-[#757575] font-Manrope-Regular"
             }`}
           >
-            {tab.label} ({count})
+            {/* {tab.label} ({count}) */}
           </Text>
           {isActive && (
             <View

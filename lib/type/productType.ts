@@ -85,3 +85,47 @@ export interface ProductsApiResponse {
     };
   };
 }
+
+
+
+export interface OrderItem {
+  id: number;
+  order_number: string;
+  order_batch_id: string;
+  type: string;
+  status: string;
+  payment_method: string;
+  currency: string;
+  total_amount: number;
+  delivery_fee: number;
+  grand_total: number;
+  created_at: string;
+  store: {
+    business_name: string;
+  };
+  items: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+    price: number;
+    image: string | null;
+  }>;
+}
+
+export interface OrdersApiResponse {
+  status: string;
+  message: string;
+  data: {
+    counts: {
+      active: number;
+      completed: number;
+      cancelled: number;
+    };
+    orders: {
+      current_page: number;
+      last_page: number;
+      total: number;
+      data: OrderItem[];
+    };
+  };
+}
