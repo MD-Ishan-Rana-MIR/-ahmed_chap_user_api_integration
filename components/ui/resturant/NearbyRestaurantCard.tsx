@@ -1,8 +1,10 @@
+import { useToggleFavrouiteResMutation } from "@/redux/restaurantsApi";
 import { router } from "expo-router";
 import { Heart, MapPin, Star } from "lucide-react-native";
-import { useState } from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import tw from "twrnc";
+import { errorMsg } from "../../../lib/msg/errorMsg";
+import { successMsg } from "../../../lib/msg/successMsg";
 
 export interface NearbyRestaurant {
   id: string;
@@ -11,7 +13,7 @@ export interface NearbyRestaurant {
   distance_km: string;
   reviews_count: string;
   cover_image_url: string;
-  isFavorite?: boolean;
+  is_favorite?: boolean;
 }
 
 interface NearbyRestaurantCardProps {
@@ -22,16 +24,44 @@ interface NearbyRestaurantCardProps {
 
 export default function NearbyRestaurantCard({
   item,
-  onFavoriteToggle,
 }: NearbyRestaurantCardProps) {
-  const [isFav, setIsFav] = useState(item.isFavorite || false);
   const reviewRating = Number(item?.reviews_count ?? 0);
   const distance = Number(item?.distance_km ?? 0);
 
-  const handleFavorite = () => {
-    const newState = !isFav;
-    setIsFav(newState);
-    onFavoriteToggle?.(item.id, newState);
+  // ===================================== Restaurant add Favourite Api =======================================
+
+  const [toggleFavrouiteRes] = useToggleFavrouiteResMutation();
+
+  const handleToggleFavourite = (id: string) => {
+    Alert.alert(
+      "Update Favorite",
+      "Are you sure you want to change this item's favorite status?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Confirm",
+          style: "default",
+          onPress: async () => {
+            try {
+              const res = await toggleFavrouiteRes(id).unwrap();
+              if (res) {
+                return successMsg(res?.message);
+              }
+            } catch (error: any) {
+              console.log("errr is", error);
+              const errorMessage =
+                error?.data?.message ||
+                error?.message ||
+                "An unexpected error occurred.";
+              return errorMsg(errorMessage);
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -86,13 +116,15 @@ export default function NearbyRestaurantCard({
       {/* Right Favorite Icon */}
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={handleFavorite}
+        onPress={() => {
+          handleToggleFavourite(item?.id);
+        }}
         style={tw`p-2 self-start`}
       >
         <Heart
           size={18}
           color="#F95700"
-          fill={isFav ? "#F95700" : "transparent"}
+          fill={item?.is_favorite ? "#F95700" : "transparent"}
         />
       </TouchableOpacity>
     </TouchableOpacity>

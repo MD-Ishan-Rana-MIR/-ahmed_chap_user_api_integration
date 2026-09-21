@@ -43,18 +43,35 @@ export const restaurantApi = baseApi.injectEndpoints({
             RestaurantResponse,
             { page: number; perPage?: number }
         >({
-            query: ({ page, perPage = 5 }) =>
-                `/restaurant/restaurants?sort_by=popular&page=${page}&per_page=${perPage}`,
+            query: ({ page, perPage = 5 }) => ({
+                url: `/restaurant/restaurants?sort_by=popular&page=${page}&per_page=${perPage}`
+            }),
+            providesTags: ["Restaurant"]
+
         }),
         getNearRestaurants: builder.query<
             RestaurantResponse,
             { page: number; lat: number; lon: number; perPage?: number }
         >({
-            query: ({ page, lat, lon, perPage = 5 }) =>
-                `/restaurant/restaurants?lat=${lat}&lon=${lon}&page=${page}&per_page=${perPage}`,
+            query: ({ page, lat, lon, perPage = 5 }) => ({
+                url: `/restaurant/restaurants?lat=${lat}&lon=${lon}&page=${page}&per_page=${perPage}`,
+
+            }),
+            providesTags: ["Restaurant"]
+
         }),
+
+        toggleFavrouiteRes : builder.mutation({
+            query : (id)=>({
+                url : `/restaurant/favorites/restaurants/${id}`,
+                method : "POST"
+            }),
+            invalidatesTags : ["Restaurant"]
+        })
+
+
     }),
 })
 
-export const { useGetPopularRestaurantsQuery, useGetNearRestaurantsQuery } =
+export const { useGetPopularRestaurantsQuery, useGetNearRestaurantsQuery,useToggleFavrouiteResMutation } =
     restaurantApi;

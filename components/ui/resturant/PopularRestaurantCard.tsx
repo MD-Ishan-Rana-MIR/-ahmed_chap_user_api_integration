@@ -1,7 +1,9 @@
+import { useToggleFavrouiteResMutation } from "@/redux/restaurantsApi";
 import { Heart, MapPin, Star } from "lucide-react-native";
-import { useState } from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import tw from "twrnc";
+import { errorMsg } from "../../../lib/msg/errorMsg";
+import { successMsg } from "../../../lib/msg/successMsg";
 
 export interface PopularRestaurant {
   id: string;
@@ -9,26 +11,56 @@ export interface PopularRestaurant {
   location: string;
   rating: number;
   image: string;
-  isFavorite?: boolean;
+  is_favorite: boolean;
+  business_name: string;
+  address: string;
+  cover_image_url: string;
+  reviews_count: number;
 }
 
 interface PopularRestaurantCardProps {
   item: PopularRestaurant;
   onPress?: (item: PopularRestaurant) => void;
-  onFavoriteToggle?: (id: string, isFav: boolean) => void;
 }
 
 export default function PopularRestaurantCard({
   item,
   onPress,
-  onFavoriteToggle,
 }: PopularRestaurantCardProps) {
-  const [isFav, setIsFav] = useState(item.isFavorite || false);
+  // ===================================== Restaurant add Favourite Api =======================================
 
-  const handleFavorite = () => {
-    const newState = !isFav;
-    setIsFav(newState);
-    onFavoriteToggle?.(item.id, newState);
+  const [toggleFavrouiteRes] = useToggleFavrouiteResMutation();
+
+  const handleToggleFavourite = (id: string) => {
+    Alert.alert(
+      "Update Favorite",
+      "Are you sure you want to change this item's favorite status?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Confirm",
+          style: "default",
+          onPress: async () => {
+            try {
+              const res = await toggleFavrouiteRes(id).unwrap();
+              if (res) {
+                return successMsg(res?.message);
+              }
+            } catch (error: any) {
+              console.log("errr is", error);
+              const errorMessage =
+                error?.data?.message ||
+                error?.message ||
+                "An unexpected error occurred.";
+              return errorMsg(errorMessage);
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -50,13 +82,15 @@ export default function PopularRestaurantCard({
         />
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={handleFavorite}
+          onPress={() => {
+            handleToggleFavourite(item?.id);
+          }}
           style={tw`absolute top-2.5 right-2.5 w-7 h-7 bg-white rounded-full items-center justify-center shadow-xs z-10`}
         >
           <Heart
             size={14}
-            color={isFav ? "#F95700" : "#F95700"}
-            fill={isFav ? "#F95700" : "transparent"}
+            color={item?.is_favorite ? "#F95700" : "#F95700"}
+            fill={item?.is_favorite ? "#F95700" : "transparent"}
           />
         </TouchableOpacity>
       </View>
