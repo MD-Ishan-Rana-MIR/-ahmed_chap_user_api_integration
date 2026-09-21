@@ -141,7 +141,12 @@ const HomeScreen = () => {
         ]}
       >
         {/* User Info Section */}
-        <View style={tw`flex-row items-center gap-x-3`}>
+        <TouchableOpacity
+          onPress={() => {
+            router.push("/(user-tab)/profile");
+          }}
+          style={tw`flex-row items-center gap-x-3`}
+        >
           <Image
             source={
               data?.data?.profile_photo_url
@@ -170,7 +175,7 @@ const HomeScreen = () => {
               <Text style={tw`text-white text-sm`}>{data?.data?.address}</Text>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Notification Button Container */}
         <TouchableOpacity

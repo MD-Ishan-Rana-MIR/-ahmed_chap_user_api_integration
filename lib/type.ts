@@ -46,3 +46,64 @@ export interface SectionProps {
   onTrack: (id: string) => void;
   onOpenFeedback: (id: string) => void;
 }
+
+
+export interface HotelImage {
+  id: number;
+  hotel_id: number;
+  image_path: string;
+  is_primary: boolean;
+  image_url: string;
+}
+
+export interface MerchantProfile {
+  id: number;
+  user_id: number;
+  country: string;
+  city: string;
+  currency: string;
+  status: string;
+  business_name: string;
+  address: string;
+  phone_number: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface HotelItem {
+  id: number;
+  merchant_profile_id: number;
+  name: string;
+  address: string;
+  city: string;
+  description: string;
+  price_per_night: string;
+  room_quantity: number;
+  max_guests: number;
+  facilities: string[];
+  lat: number;
+  lon: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  reviews_avg_rating: string | null;
+  reviews_count: number;
+  distance_km: number;
+  is_favorite: boolean;
+  images: HotelImage[];
+  merchant_profile: MerchantProfile;
+}
+
+export interface FavoriteHotelsResponse {
+  status: string;
+  message: string;
+  data: {
+    properties: {
+      current_page: number;
+      data: HotelItem[];
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  };
+}

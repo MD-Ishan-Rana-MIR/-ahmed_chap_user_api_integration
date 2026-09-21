@@ -81,7 +81,28 @@ export const hotelApi = baseApi.injectEndpoints({
                 method: "POST"
             }),
             invalidatesTags: ["hotel"]
-        })
+        }),
+        getFavoriteHotels: builder.query({
+      query: ({ page_no = 1, per_page = 10 }) =>
+        `/hotel/favorites?per_page=${per_page}&page_no=${page_no}`,
+      serializeQueryArgs: ({ endpointName }) => {
+        return endpointName;
+      },
+      merge: (currentCache, newResponse, { arg }) => {
+        if (arg.page_no === 1) {
+          return newResponse;
+        }
+        currentCache.data.properties.data.push(
+          ...newResponse.data.properties.data
+        );
+        currentCache.data.properties.current_page =
+          newResponse.data.properties.current_page;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.page_no !== previousArg?.page_no;
+      },
+      providesTags: ["hotel"],
+    }),
     }),
 });
 
@@ -92,7 +113,8 @@ export const {
     useGetPopularHotelsQuery,
     useHotelSearchQuery,
     useGetNearHotelsQuery,
-    useToggleFavoriteHotelMutation
+    useToggleFavoriteHotelMutation,
+    useGetFavoriteHotelsQuery
 
 
 } = hotelApi;
