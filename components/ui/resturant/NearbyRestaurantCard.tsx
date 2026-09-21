@@ -67,7 +67,12 @@ export default function NearbyRestaurantCard({
   return (
     <TouchableOpacity
       activeOpacity={0.9}
-      onPress={() => router.push("/restaurants_details/[id]")}
+      onPress={() =>
+        router.push({
+          pathname: "/restaurants_details/[id]",
+          params: { id: item?.id },
+        })
+      }
       style={tw`bg-[#FCFCFC] border border-[#F3F3F3] rounded-2xl p-2 flex-row items-center justify-between mb-3 shadow-xs`}
     >
       {/* Left Image & Info */}

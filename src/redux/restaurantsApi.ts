@@ -67,11 +67,33 @@ export const restaurantApi = baseApi.injectEndpoints({
                 method : "POST"
             }),
             invalidatesTags : ["Restaurant"]
+        }),
+        resturantDetails : builder.query({
+            query : (id)=>({
+                url : `/restaurant/restaurants/${id}`,
+                method : "GET"
+            }),
+            providesTags : ["Restaurant"]
+        }),
+        resturantProductFavToggle : builder.mutation({
+            query : (id)=>({
+                url : `/restaurant/favorites/${id}`,
+                method : "POST"
+            }),
+            invalidatesTags : ["Restaurant"]
+        }),
+        resturantProductAddToCart : builder.mutation({
+            query : (payload)=>({
+                url : `/restaurant/cart/add`,
+                method : "POST",
+                body : payload
+
+            })
         })
 
 
     }),
 })
 
-export const { useGetPopularRestaurantsQuery, useGetNearRestaurantsQuery,useToggleFavrouiteResMutation } =
+export const { useGetPopularRestaurantsQuery, useGetNearRestaurantsQuery,useToggleFavrouiteResMutation,useResturantDetailsQuery,useResturantProductFavToggleMutation,useResturantProductAddToCartMutation} =
     restaurantApi;
