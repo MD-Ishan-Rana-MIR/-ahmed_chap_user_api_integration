@@ -1,18 +1,13 @@
 import { useState } from "react";
 import { View } from "react-native";
 import tw from "twrnc";
-import { FeedbackModal } from "../../../components/FeedbackModal";
 import BackButton from "../../../components/ui/BackButton";
-import { BusSection } from "../../../components/ui/order/BusSection";
+import BusSection from "../../../components/ui/order/BusSection";
 import { CategoryFilter } from "../../../components/ui/order/CategoryFilter";
-import { HotelsSection } from "../../../components/ui/order/HotelsSection";
+import HotelsSection from "../../../components/ui/order/HotelsSection";
 import ProductsSection from "../../../components/ui/order/ProductsSection";
 import { RestaurantsSection } from "../../../components/ui/order/RestaurantsSection";
-import {
-  CategoryItem,
-  CategoryType,
-  TabStatus
-} from "../../../lib/type";
+import { CategoryItem, CategoryType, TabStatus } from "../../../lib/type";
 
 const CATEGORIES: CategoryItem[] = [
   { id: "products", label: "Products", icon: "bag-handle-outline" },
@@ -31,7 +26,7 @@ export default function OrderScreen() {
   const renderCategoryContent = () => {
     switch (selectedCategory) {
       case "products":
-        return <ProductsSection status={activeTab} />;
+        return <ProductsSection />;
       case "hotels":
         return <HotelsSection />;
       case "restaurants":
@@ -54,12 +49,6 @@ export default function OrderScreen() {
 
         {renderCategoryContent()}
       </View>
-
-      <FeedbackModal
-        isVisible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onSubmit={() => setModalVisible(false)}
-      />
     </View>
   );
 }

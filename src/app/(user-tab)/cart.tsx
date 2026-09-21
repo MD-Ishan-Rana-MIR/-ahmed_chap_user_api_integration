@@ -4,6 +4,7 @@ import {
   useUpdateCartQuantityMutation,
   useViewCartQuery,
 } from "@/redux/eProductApi";
+import { useProceedToCheckoutMutation } from "@/redux/paymentApi";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -29,6 +30,33 @@ export default function Cart() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [updatingItemId, setUpdatingItemId] = useState<number | null>(null);
+
+  // ================================================ Checkout Api ======================================================
+
+  const { data: deliveryAddress } = useGetAllAddressQuery({});
+
+  const [proceedToCheckout, { isLoading: checkoutLoading }] =
+    useProceedToCheckoutMutation();
+
+  const handleProceedToCheckout = async () => {
+    const payload = {
+      user_address_id: deliveryAddress?.data?.addresses[0]["id"],
+      phone_number: deliveryAddress?.data?.addresses[0]["phone_number"],
+    };
+
+    const res = await proceedToCheckout(payload).unwrap();
+    if (res) {
+      return successMsg(res?.message);
+    }
+
+    try {
+    } catch (error: any) {
+      console.log(error);
+      const errorMessage =
+        error?.data?.message || error?.message || "Failed to update quantity.";
+      errorMsg(errorMessage);
+    }
+  };
 
   // View Cart API Call
   const { data, isLoading } = useViewCartQuery({});
@@ -410,14 +438,21 @@ export default function Cart() {
           ]}
         >
           <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => router.push("/checkout")}
-            style={tw`w-full bg-[#587511] py-4 rounded-full items-center justify-center shadow-sm`}
+            activeOpacity={0.8}
+            onPress={handleProceedToCheckout}
+            disabled={checkoutLoading}
+            style={tw`w-full bg-[#587511] py-4 rounded-full items-center justify-center shadow-sm flex-row gap-x-2 ${
+              isLoading ? "opacity-70" : "opacity-100"
+            }`}
           >
-            <Text style={tw`text-white font-bold text-base`}>
-              Proceed to Checkout ({summary?.currency || "KES"}{" "}
-              {summary?.total_cost || 0})
-            </Text>
+            {checkoutLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={tw`text-white font-bold text-base`}>
+                Proceed to Checkout ({summary?.currency || "KES"}{" "}
+                {summary?.total_cost || 0})
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       )}
