@@ -1,156 +1,159 @@
+import {
+  useAddFavouriteMutation,
+  useGetProductsQuery,
+} from "@/redux/eProductApi";
+import { useStoreDetailsQuery } from "@/redux/storeApi";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
-import { FlatList, Image, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SvgXml } from "react-native-svg";
+import { NotFoundState } from "../../../components/NotFoundState";
+import { ShopDetailsSkeleton } from "../../../components/ui/skeleton/ShopDetailsSkeleton";
+import { phoneIcon } from "../../../lib/icon";
+import { errorMsg } from "../../../lib/msg/errorMsg";
+import { successMsg } from "../../../lib/msg/successMsg";
 import tw from "../../../lib/tailwind";
 
-// Mock Subcategories
-const TABS = ["Fruits", "Vegetables", "Spices", "Ingredients"];
-
-// Mock Products
-interface ProductItem {
-  id: string;
-  title: string;
-  price: string;
-  unit: string;
-  rating: string;
-  reviews: string;
-  category: string;
-  image: any;
-}
-
-const PRODUCTS: ProductItem[] = [
-  {
-    id: "1",
-    title: "Fresh Banana",
-    price: "$42",
-    unit: "/1kg",
-    rating: "4.5",
-    reviews: "1k",
-    category: "Fruits",
-    image: require("../../../assets/product/product.png"),
-  },
-  {
-    id: "2",
-    title: "Red Apple",
-    price: "$42",
-    unit: "/1kg",
-    rating: "4.5",
-    reviews: "1k",
-    category: "Vegetables",
-    image: require("../../../assets/product/product.png"),
-  },
-  {
-    id: "15",
-    title: "Fresh Banana",
-    price: "$42",
-    unit: "/1kg",
-    rating: "4.5",
-    reviews: "1k",
-    category: "Fruits",
-    image: require("../../../assets/product/product.png"),
-  },
-  {
-    id: "20",
-    title: "Red Apple",
-    price: "$42",
-    unit: "/1kg",
-    rating: "4.5",
-    reviews: "1k",
-    category: "Vegetables",
-    image: require("../../../assets/product/product.png"),
-  },
-  {
-    id: "16",
-    title: "Fresh Banana",
-    price: "$42",
-    unit: "/1kg",
-    rating: "4.5",
-    reviews: "1k",
-    category: "Fruits",
-    image: require("../../../assets/product/product.png"),
-  },
-  {
-    id: "21 b",
-    title: "Red Apple",
-    price: "$42",
-    unit: "/1kg",
-    rating: "4.5",
-    reviews: "1k",
-    category: "Vegetables",
-    image: require("../../../assets/product/product.png"),
-  },
-  {
-    id: "15",
-    title: "Fresh Banana",
-    price: "$42",
-    unit: "/1kg",
-    rating: "4.5",
-    reviews: "1k",
-    category: "Fruits",
-    image: require("../../../assets/product/product.png"),
-  },
-  {
-    id: "20",
-    title: "Red Apple",
-    price: "$42",
-    unit: "/1kg",
-    rating: "4.5",
-    reviews: "1k",
-    category: "Vegetables",
-    image: require("../../../assets/product/product.png"),
-  },
-  {
-    id: "3",
-    title: "Red Apple",
-    price: "$42",
-    unit: "/1kg",
-    rating: "4.5",
-    reviews: "1k",
-    category: "Spices",
-    image: require("../../../assets/product/product.png"),
-  },
-  {
-    id: "4",
-    title: "Fresh Banana",
-    price: "$42",
-    unit: "/1kg",
-    rating: "4.5",
-    reviews: "1k",
-    category: "Fruits",
-    image: require("../../../assets/product/product.png"),
-  },
-];
+const defaultImage = require("../../../assets/product/product.png");
 
 export default function ShopDetails() {
+  const { id } = useLocalSearchParams();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [activeTab, setActiveTab] = useState("Fruits");
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [page, setPage] = useState<number>(1);
+  const [activeTab, setActiveTab] = useState<string>("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Filter products matching active tab
-  const filteredProducts = PRODUCTS.filter(
-    (product) => product.category.toLowerCase() === activeTab.toLowerCase(),
+  const [coverError, setCoverError] = useState(false);
+  const [profileError, setProfileError] = useState(false);
+
+  // 1. Fetch Store Details (Renamed data -> storeData, isLoading -> isStoreLoading)
+  const { data: storeData, isLoading: isStoreLoading } =
+    useStoreDetailsQuery(id);
+  const TABS = storeData?.data?.categories || [];
+  const highlyRecommendedProduct = storeData?.data?.highly_recommended || [];
+
+  // Set default active tab
+  useEffect(() => {
+    if (TABS.length > 0 && !activeTab) {
+      setActiveTab(TABS[0]?.slug || TABS[0]?.name?.toLowerCase());
+    }
+  }, [TABS]);
+
+  // 2. Fetch Products via RTK Query
+  const {
+    data: productsData,
+    isLoading: isProductsLoading,
+    isFetching,
+    refetch,
+  } = useGetProductsQuery(
+    {
+      category_slug: activeTab,
+      page: page,
+      per_page: 10,
+    },
+    { skip: !activeTab },
   );
 
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+  const products = productsData?.data?.products?.data || [];
+  const currentPage = productsData?.data?.products?.current_page || 1;
+  const lastPage = productsData?.data?.products?.last_page || 1;
+
+  //=============================================== Handle Add Favourites =========================================
+
+  const [addFavourite] = useAddFavouriteMutation();
+
+  const handleToggleFavourite = (id: string) => {
+    Alert.alert(
+      "Update Favorite",
+      "Are you sure you want to change this item's favorite status?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Confirm",
+          style: "default",
+          onPress: async () => {
+            try {
+              const res = await addFavourite(id).unwrap();
+              if (res) {
+                return successMsg(res?.message);
+              }
+            } catch (error: any) {
+              console.log("errr is", error);
+              const errorMessage =
+                error?.data?.message ||
+                error?.message ||
+                "An unexpected error occurred.";
+              return errorMsg(errorMessage);
+            }
+          },
+        },
+      ],
+    );
   };
 
+  // Pull-to-refresh handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setPage(1);
+    await refetch();
+    setIsRefreshing(false);
+  };
+
+  // Category Tab Selection
+  const handleCategorySelect = (categorySlug: string) => {
+    if (activeTab === categorySlug) {
+      refetch();
+    } else {
+      setActiveTab(categorySlug);
+      setPage(1);
+    }
+  };
+
+  // Infinite Scroll Handler
+  const handleLoadMore = () => {
+    if (!isFetching && currentPage < lastPage) {
+      setPage((prevPage) => prevPage + 1);
+    }
+  };
+
+  if (isStoreLoading) {
+    return <ShopDetailsSkeleton />;
+  }
+
+  // --- Render Header Component ---
   const renderHeader = () => (
     <View style={tw`bg-white`}>
       {/* Banner Image & Back Button */}
       <View style={tw`relative h-56 w-full bg-gray-200`}>
         <Image
-          source={require("../../../assets/product/product.png")}
+          source={
+            profileError || !storeData?.data?.store?.profile_image_url
+              ? defaultImage
+              : { uri: storeData?.data?.store?.profile_image_url }
+          }
+          onError={() => setProfileError(true)}
           style={tw`w-full h-full`}
           resizeMode="cover"
         />
 
-        {/* Floating Back Button */}
         <TouchableOpacity
           onPress={() => router.back()}
           activeOpacity={0.8}
@@ -165,45 +168,38 @@ export default function ShopDetails() {
 
       {/* Store Logo & Details */}
       <View style={tw`px-5 pb-4`}>
-        {/* Overlapping Store Logo */}
         <View
-          style={tw`-mt-8  w-25 h-25 rounded-full border-4 border-white bg-white overflow-hidden shadow-md items-center justify-center`}
+          style={tw`-mt-8 w-25 h-25 rounded-full border-4 border-white bg-white overflow-hidden shadow-md items-center justify-center`}
         >
           <Image
-            source={require("../../../assets/product/product.png")}
-            style={tw` w-full h-full `}
+            source={
+              coverError || !storeData?.data?.store?.cover_image_url
+                ? defaultImage
+                : { uri: storeData?.data?.store?.cover_image_url }
+            }
+            onError={() => setCoverError(true)}
+            style={tw`w-full h-full`}
             resizeMode="cover"
           />
         </View>
 
-        <View style={tw`ml-28 -mt-14 `}>
-          {/* Store Title */}
+        <View style={tw`ml-28 -mt-14`}>
           <Text
-            style={tw`text-[16px] font-Manrope-SemiBold.ttf text-[#303030] mb-1.5`}
+            style={tw`text-[16px] font-Manrope-SemiBold text-[#303030] mb-1.5`}
           >
-            Mina Bazar
+            {storeData?.data?.store?.business_name || "Store"}
           </Text>
 
-          {/* Store Location & Rating */}
-          <View style={tw`flex-row items-center gap-x-3  mb-3`}>
-            <View style={tw`flex-row items-center gap-1`}>
-              <Ionicons name="location-outline" size={15} color="#6B7280" />
-              <Text
-                style={tw`text-xs text-[#505050] font-Manrope-Regular.ttf `}
-              >
-                1.2 km
-              </Text>
-            </View>
-
-            <View style={tw`flex-row items-center gap-1`}>
-              <Ionicons name="star" size={12} color="#FDC700" />
-              <Text style={tw`text-xs font-Manrope-Regular.ttf text-[#4A5565]`}>
-                4.5{" "}
-                <Text
-                  style={tw`text-[#4A5565] text-[10px] font-Manrope-Regular.ttf `}
-                >
-                  (1k)
-                </Text>
+          <View style={tw`flex-row items-center gap-x-3 mb-3`}>
+            <View style={tw`flex-row items-center gap-1.5`}>
+              <SvgXml
+                xml={phoneIcon}
+                width={14}
+                height={14}
+                color={"#505050"}
+              />
+              <Text style={tw`text-xs text-[#505050] font-Manrope-Regular`}>
+                {storeData?.data?.store?.phone_number}
               </Text>
             </View>
           </View>
@@ -211,30 +207,120 @@ export default function ShopDetails() {
 
         {/* Description */}
         <Text style={tw`text-sm text-[#757575] mt-4 leading-5 mb-4`}>
-          Premium fashion brand offering contemporary styles for the modern
-          individual. Established in 2015, we bring you curated collections that
-          blend comfort with elegance.
+          {storeData?.data?.store?.description || "No description available."}
         </Text>
 
-        {/* Tabs */}
+        {/* --- HIGHLY RECOMMENDED SECTION --- */}
+        {highlyRecommendedProduct.length > 0 && (
+          <View style={tw`mb-5`}>
+            <Text
+              style={tw`text-[16px] font-Manrope-SemiBold text-[#222222] mb-3`}
+            >
+              Highly Recommended
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={tw`gap-x-3`}
+            >
+              {highlyRecommendedProduct.map((recItem: any) => {
+                const itemImage =
+                  recItem?.primary_image || recItem?.images?.[0];
+
+                return (
+                  <TouchableOpacity
+                    key={recItem?.id}
+                    activeOpacity={0.9}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/product-details/[id]" as any,
+                        params: { id: recItem?.id },
+                      })
+                    }
+                    style={tw`w-38 bg-[#F8F9FA] rounded-2xl p-3 relative border border-gray-100`}
+                  >
+                    {/* Favorite Icon */}
+                    <TouchableOpacity
+                      onPress={() => handleToggleFavourite(recItem?.id)}
+                      activeOpacity={0.8}
+                      style={tw`absolute top-2.5 right-2.5 z-10`}
+                    >
+                      <Ionicons
+                        name={recItem?.is_favorite ? "heart" : "heart-outline"}
+                        size={16}
+                        color={recItem?.is_favorite ? "#EF4444" : "#FF6B00"}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Image */}
+                    <View style={tw`items-center justify-center my-1 h-20`}>
+                      <Image
+                        source={itemImage ? { uri: itemImage } : defaultImage}
+                        style={tw`w-16 h-16`}
+                        resizeMode="contain"
+                      />
+                    </View>
+
+                    {/* Title */}
+                    <Text
+                      style={tw`text-xs font-Manrope-SemiBold text-[#303030] mt-1`}
+                      numberOfLines={1}
+                    >
+                      {recItem?.name}
+                    </Text>
+
+                    {/* Category */}
+                    <Text
+                      style={tw`text-[10px] text-gray-400 font-Manrope-Regular`}
+                      numberOfLines={1}
+                    >
+                      {recItem?.category?.name}
+                    </Text>
+
+                    {/* Price & Unit */}
+                    <View
+                      style={tw`flex-row justify-between items-center mt-2`}
+                    >
+                      <Text
+                        style={tw`text-xs font-Manrope-SemiBold text-[#F86B17]`}
+                      >
+                        {recItem?.currency || "KES"} {recItem?.price}
+                      </Text>
+
+                      <Text
+                        style={tw`text-[10px] text-gray-500 font-Manrope-Regular`}
+                      >
+                        /{parseFloat(recItem?.unit_value || "1")}
+                        {recItem?.unit_type}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Dynamic Category Tabs */}
         <View style={tw`flex-row border-b border-gray-200 justify-between`}>
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab;
+          {TABS.map((tab: any) => {
+            const tabKey = tab?.slug || tab?.name?.toLowerCase();
+            const isActive = activeTab === tabKey;
             return (
               <TouchableOpacity
-                key={tab}
-                onPress={() => setActiveTab(tab)}
+                key={tab?.id || tabKey}
+                onPress={() => handleCategorySelect(tabKey)}
                 activeOpacity={0.7}
                 style={tw`pb-3 px-1 border-b-2 ${
                   isActive ? "border-[#F86B17]" : "border-transparent"
                 }`}
               >
                 <Text
-                  style={tw`text-xs  font-Manrope-Medium.ttf  ${
+                  style={tw`text-xs font-Manrope-Medium ${
                     isActive ? "text-[#F86B17]" : "text-[#B1B1B1]"
                   }`}
                 >
-                  {tab}
+                  {tab?.name}
                 </Text>
               </TouchableOpacity>
             );
@@ -243,7 +329,7 @@ export default function ShopDetails() {
 
         {/* Section Title */}
         <Text
-          style={tw`text-[16px] font-Manrope-SemiBold.ttf text-[#222222] mt-5 mb-2.5`}
+          style={tw`text-[16px] font-Manrope-SemiBold text-[#222222] mt-5 mb-1`}
         >
           All Products
         </Text>
@@ -251,106 +337,104 @@ export default function ShopDetails() {
     </View>
   );
 
+  // --- Render Main Products Item ---
+  const renderProductItem = ({ item }: { item: any }) => {
+    const itemImage = item?.primary_image || item?.images?.[0];
+
+    console.log("item", item?.is_favorite);
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() =>
+          router.push({
+            pathname: "/product-details/[id]" as any,
+            params: { id: item?.id },
+          })
+        }
+        style={tw`flex-1 m-5 bg-[#F8F9FA] rounded-2xl p-3 border border-gray-100 relative`}
+      >
+        <TouchableOpacity
+          onPress={() => handleToggleFavourite(item?.id)}
+          activeOpacity={0.8}
+          style={tw`absolute top-2.5 right-2.5 z-10`}
+        >
+          <Ionicons
+            name={item?.is_favorite ? "heart" : "heart-outline"}
+            size={16}
+            color={item?.is_favorite ? "#EF4444" : "#FF6B00"}
+          />
+        </TouchableOpacity>
+
+        <View style={tw`items-center justify-center h-24 my-1`}>
+          <Image
+            source={itemImage ? { uri: itemImage } : defaultImage}
+            style={tw`w-20 h-20`}
+            resizeMode="contain"
+          />
+        </View>
+
+        <Text
+          style={tw`text-xs font-Manrope-SemiBold text-[#303030] mt-1`}
+          numberOfLines={1}
+        >
+          {item?.name}
+        </Text>
+
+        <Text style={tw`text-[10px] text-gray-400`} numberOfLines={1}>
+          {item?.category?.name}
+        </Text>
+
+        <View style={tw`flex-row justify-between items-center mt-2`}>
+          <Text style={tw`text-xs font-Manrope-SemiBold text-[#F86B17]`}>
+            {item?.currency || "KES"} {item?.price}
+          </Text>
+          <Text style={tw`text-[10px] text-gray-500`}>
+            /{parseFloat(item?.unit_value || "1")}
+            {item?.unit_type}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  if (isStoreLoading) {
+    return <ShopDetailsSkeleton />;
+  }
+
   return (
     <View style={tw`flex-1 bg-white`}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       <FlatList
-        data={filteredProducts}
-        keyExtractor={(item) => item.id}
+        data={products}
+        keyExtractor={(item: any) => item.id.toString()}
         numColumns={2}
         ListHeaderComponent={renderHeader}
+        renderItem={renderProductItem}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
+        ListFooterComponent={
+          isFetching && page > 1 ? (
+            <View style={tw`py-4`}>
+              <ActivityIndicator size="small" color="#F86B17" />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
-          <View style={tw`items-center justify-center py-10`}>
-            <Text style={tw`text-xs text-gray-400`}>
-              No products found in {activeTab}
-            </Text>
-          </View>
+          !isProductsLoading ? (
+            <NotFoundState
+              title={`No products found in ${activeTab || "this category"}`}
+            />
+          ) : (
+            <ActivityIndicator style={tw`my-10`} color="#F86B17" />
+          )
         }
+        contentContainerStyle={tw` pb-6`}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={tw``}
-        columnWrapperStyle={
-          filteredProducts.length > 0
-            ? tw`justify-between px-5 mb-4`
-            : undefined
-        }
-        renderItem={({ item }) => (
-          <View style={tw`w-[48%] bg-[#F8F9FA] rounded-2xl p-3 relative`}>
-            {/* Heart Icon */}
-            <TouchableOpacity
-              onPress={() => toggleFavorite(item.id)}
-              activeOpacity={0.8}
-              style={tw`absolute top-3 right-3 z-10`}
-            >
-              <Ionicons
-                name={favorites[item.id] ? "heart" : "heart-outline"}
-                size={18}
-                color={favorites[item.id] ? "#EF4444" : "#FF6B00"}
-              />
-            </TouchableOpacity>
-
-            {/* Product Image */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() =>
-                router.push({
-                  pathname: "/product-details",
-                  params: { id: item?.id },
-                })
-              }
-              style={tw`items-center justify-center my-2 h-28`}
-            >
-              <Image
-                source={item.image}
-                style={tw`w-24 h-24`}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-
-            {/* Product Meta */}
-            <View style={tw`flex-row justify-between items-center mb-1`}>
-              <Text
-                style={tw`text-xs font-Manrope-SemiBold.ttf text-[#303030]`}
-              >
-                {item.title}
-              </Text>
-              <View style={tw`flex-row items-center gap-0.5`}>
-                <Ionicons name="star" size={11} color="#FDC700" />
-                <Text
-                  style={tw`text-xs font-Manrope-SemiBold.ttf text-[#4A5565]`}
-                >
-                  {item.rating}{" "}
-                  <Text
-                    style={tw` font-Manrope-Regular.ttf text-[#4A5565] text-[10px] `}
-                  >
-                    ({item.reviews})
-                  </Text>
-                </Text>
-              </View>
-            </View>
-
-            {/* Price & Cart Button */}
-            <View style={tw`flex-row justify-between items-center mt-1`}>
-              <Text
-                style={tw`text-[16px] font-Manrope-SemiBold.ttf text-[#303030]`}
-              >
-                {item.price}{" "}
-                <Text
-                  style={tw`text-[10px] font-Manrope-Regular.ttf text-[#303030]`}
-                >
-                  {item.unit}
-                </Text>
-              </Text>
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={tw`w-7 h-7 rounded-full bg-white border border-gray-200 items-center justify-center shadow-xs`}
-              >
-                <Ionicons name="cart-outline" size={14} color="#374151" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
       />
     </View>
   );

@@ -66,14 +66,8 @@ export default function ProductDetails() {
   const insets = useSafeAreaInsets();
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [favoriteRelated, setFavoriteRelated] = useState<
-    Record<string, boolean>
-  >({});
 
   const { data, isLoading } = useProductDetailsQuery(id);
-
-  console.log(data?.data?.product?.is_favorite);
 
   const relatedProduct = data?.data?.related_products || [];
 
@@ -453,8 +447,14 @@ export default function ProductDetails() {
         <TouchableOpacity
           activeOpacity={0.4}
           style={tw`flex-1 bg-[#F5F7EF] py-3.5 rounded-full items-center justify-center`}
+          // onPress={() => {
+          //   router.push("/shop-details/[id]");
+          // }}
           onPress={() => {
-            router.push("/shop-details/[id]");
+            router.push({
+              pathname: "/shop-details/[id]",
+              params: { id: data?.data?.product?.store?.id },
+            });
           }}
         >
           <Text style={tw`text-[#5B7410] font-semibold text-sm`}>
