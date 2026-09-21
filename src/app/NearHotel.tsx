@@ -95,7 +95,9 @@ const Hotel = () => {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={tw`gap-y-3 px-5 pb-10 pt-3`}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => <NearHotelCard item={item} />}
+        renderItem={({ item }) => (
+          <NearHotelCard item={item} refetch={refetchNear} />
+        )}
         onEndReached={handleNearLoadMore}
         onEndReachedThreshold={0.5}
         refreshControl={

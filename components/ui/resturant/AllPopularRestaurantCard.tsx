@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { Heart, MapPin, Star } from "lucide-react-native";
 import { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
@@ -38,7 +39,13 @@ export const AllPopularRestaurantCard = ({
   const imageUrl = item?.cover_image_url || item?.image || DEFAULT_IMAGE;
 
   return (
-    <View
+    <TouchableOpacity
+      onPress={() =>
+        router.push({
+          pathname: "/restaurants_details/[id]",
+          params: { id: item?.id },
+        })
+      }
       style={tw`bg-white rounded-2xl border border-gray-100 p-3 shadow-sm mb-4`}
     >
       {/* Image & Heart Button Container */}
@@ -90,7 +97,7 @@ export const AllPopularRestaurantCard = ({
           </Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

@@ -74,6 +74,13 @@ export const hotelApi = baseApi.injectEndpoints({
                 method: "GET"
             }),
             providesTags: ["hotel"]
+        }),
+        toggleFavoriteHotel: builder.mutation({
+            query: (id) => ({
+                url: `/hotel/favorites/${id}`,
+                method: "POST"
+            }),
+            invalidatesTags: ["hotel"]
         })
     }),
 });
@@ -84,7 +91,8 @@ export const {
     useHotelDetailsQuery,
     useGetPopularHotelsQuery,
     useHotelSearchQuery,
-    useGetNearHotelsQuery
+    useGetNearHotelsQuery,
+    useToggleFavoriteHotelMutation
 
 
 } = hotelApi;

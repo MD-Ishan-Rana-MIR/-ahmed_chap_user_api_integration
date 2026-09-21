@@ -1,14 +1,56 @@
 import { useUserProfileQuery } from "@/redux/authApi";
+import { useToggleFavoriteHotelMutation } from "@/redux/hotelApi";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { memo } from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import { formatCurrency } from "react-native-format-currency";
+import { errorMsg } from "../../../../lib/msg/errorMsg";
+import { successMsg } from "../../../../lib/msg/successMsg";
 import tw from "../../../../lib/tailwind";
 
+type PopularHotelCardProps = {
+  item: any;
+  refetch: () => void;
+};
+
 export const PopularHotelCard = memo(
-  ({ item, isFavorite, onToggleFavorite }) => {
+  ({ item, refetch }: PopularHotelCardProps) => {
     const { data: profileData } = useUserProfileQuery({});
+
+    const [toggleFavoriteHotel] = useToggleFavoriteHotelMutation();
+
+    const handleToggleFavourite = (id: string) => {
+      Alert.alert(
+        "Update Favorite",
+        "Are you sure you want to change this item's favorite status?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Confirm",
+            style: "default",
+            onPress: async () => {
+              try {
+                const res = await toggleFavoriteHotel(id).unwrap();
+                if (res) {
+                  refetch();
+                  return successMsg(res?.message);
+                }
+              } catch (error: any) {
+                const errorMessage =
+                  error?.data?.message ||
+                  error?.message ||
+                  "An unexpected error occurred.";
+                return errorMsg(errorMessage);
+              }
+            },
+          },
+        ],
+      );
+    };
 
     return (
       <TouchableOpacity
@@ -28,14 +70,14 @@ export const PopularHotelCard = memo(
             resizeMode="cover"
           />
           <TouchableOpacity
-            onPress={() => onToggleFavorite(item.id)}
+            onPress={() => handleToggleFavourite(item?.id)}
             activeOpacity={0.8}
             style={tw`absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 items-center justify-center shadow-xs`}
           >
             <Ionicons
-              name={isFavorite ? "heart" : "heart-outline"}
+              name={item?.is_favorite ? "heart" : "heart-outline"}
               size={16}
-              color={isFavorite ? "#FF5A1F" : "#6B7280"}
+              color={item?.is_favorite ? "#FF5A1F" : "#6B7280"}
             />
           </TouchableOpacity>
         </View>

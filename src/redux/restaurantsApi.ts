@@ -61,39 +61,69 @@ export const restaurantApi = baseApi.injectEndpoints({
 
         }),
 
-        toggleFavrouiteRes : builder.mutation({
-            query : (id)=>({
-                url : `/restaurant/favorites/restaurants/${id}`,
-                method : "POST"
+        toggleFavrouiteRes: builder.mutation({
+            query: (id) => ({
+                url: `/restaurant/favorites/restaurants/${id}`,
+                method: "POST"
             }),
-            invalidatesTags : ["Restaurant"]
+            invalidatesTags: ["Restaurant"]
         }),
-        resturantDetails : builder.query({
-            query : (id)=>({
-                url : `/restaurant/restaurants/${id}`,
-                method : "GET"
+        resturantDetails: builder.query({
+            query: (id) => ({
+                url: `/restaurant/restaurants/${id}`,
+                method: "GET"
             }),
-            providesTags : ["Restaurant"]
+            providesTags: ["Restaurant"]
         }),
-        resturantProductFavToggle : builder.mutation({
-            query : (id)=>({
-                url : `/restaurant/favorites/${id}`,
-                method : "POST"
+        resturantProductFavToggle: builder.mutation({
+            query: (id) => ({
+                url: `/restaurant/favorites/${id}`,
+                method: "POST"
             }),
-            invalidatesTags : ["Restaurant"]
+            invalidatesTags: ["Restaurant"]
         }),
-        resturantProductAddToCart : builder.mutation({
-            query : (payload)=>({
-                url : `/restaurant/cart/add`,
-                method : "POST",
-                body : payload
+        resturantProductAddToCart: builder.mutation({
+            query: (payload) => ({
+                url: `/restaurant/cart/add`,
+                method: "POST",
+                body: payload
 
-            })
-        })
+            }),
+            invalidatesTags: ["Restaurant"]
+        }),
+
+        resturantProductDetails: builder.query({
+            query: (id) => ({
+                url: `/restaurant/foods/${id}`,
+                method: "GET"
+            }),
+            providesTags: ["Restaurant"]
+        }),
+        getFavoriteRestaurants: builder.query({
+            query: ({ page_no = 1, per_page = 20 }) =>
+                `/restaurant/favorites/restaurants?per_page=${per_page}&page_no=${page_no}`,
+            serializeQueryArgs: ({ endpointName }) => {
+                return endpointName;
+            },
+            merge: (currentCache, newResponse, { arg }) => {
+                if (arg.page_no === 1) {
+                    return newResponse;
+                }
+                currentCache.data.restaurants.data.push(
+                    ...newResponse.data.restaurants.data
+                );
+                currentCache.data.restaurants.current_page =
+                    newResponse.data.restaurants.current_page;
+            },
+            forceRefetch({ currentArg, previousArg }) {
+                return currentArg?.page_no !== previousArg?.page_no;
+            },
+            providesTags: ["Restaurant"],
+        }),
 
 
     }),
 })
 
-export const { useGetPopularRestaurantsQuery, useGetNearRestaurantsQuery,useToggleFavrouiteResMutation,useResturantDetailsQuery,useResturantProductFavToggleMutation,useResturantProductAddToCartMutation} =
+export const { useGetPopularRestaurantsQuery, useGetNearRestaurantsQuery, useToggleFavrouiteResMutation, useResturantDetailsQuery, useResturantProductFavToggleMutation, useResturantProductAddToCartMutation, useResturantProductDetailsQuery, useGetFavoriteRestaurantsQuery } =
     restaurantApi;

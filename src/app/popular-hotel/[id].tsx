@@ -1,9 +1,13 @@
-import { useGetPopularHotelsQuery } from "@/redux/hotelApi";
+import {
+  useGetPopularHotelsQuery,
+  useToggleFavoriteHotelMutation,
+} from "@/redux/hotelApi";
 import { router } from "expo-router";
 import { Heart, MapPin, Star } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Text,
@@ -12,6 +16,8 @@ import {
 } from "react-native";
 import BackButton from "../../../components/ui/BackButton";
 import PopularHotelSkeletonList from "../../../components/ui/skeleton/PopularHotelSkeleton";
+import { errorMsg } from "../../../lib/msg/errorMsg";
+import { successMsg } from "../../../lib/msg/successMsg";
 import tw from "../../../lib/tailwind";
 
 export interface HotelItem {
@@ -27,6 +33,7 @@ export interface HotelItem {
   thumbnail?: string;
   image?: string;
   images?: Array<string | { image_url?: string }>;
+  is_favorite: boolean;
 }
 
 export default function PopularHotel() {
@@ -37,6 +44,7 @@ export default function PopularHotel() {
     data: response,
     isLoading,
     isFetching,
+    refetch,
   } = useGetPopularHotelsQuery({
     page,
     perPage: 5,
@@ -44,10 +52,6 @@ export default function PopularHotel() {
 
   const propertiesList: HotelItem[] = response?.data?.properties?.data || [];
   const lastPage = response?.data?.properties?.last_page || 1;
-
-  const toggleFavorite = (id: string | number) => {
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
 
   const handleLoadMore = () => {
     if (!isFetching && page < lastPage) {
@@ -78,6 +82,40 @@ export default function PopularHotel() {
       return `${item.city || ""}, ${item.country || ""}`.trim();
     }
     return "Location unavailable";
+  };
+
+  const [toggleFavoriteHotel] = useToggleFavoriteHotelMutation();
+
+  const handleToggleFavourite = (id: string) => {
+    Alert.alert(
+      "Update Favorite",
+      "Are you sure you want to change this item's favorite status?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Confirm",
+          style: "default",
+          onPress: async () => {
+            try {
+              const res = await toggleFavoriteHotel(id).unwrap();
+              if (res) {
+                refetch();
+                return successMsg(res?.message);
+              }
+            } catch (error: any) {
+              const errorMessage =
+                error?.data?.message ||
+                error?.message ||
+                "An unexpected error occurred.";
+              return errorMsg(errorMessage);
+            }
+          },
+        },
+      ],
+    );
   };
 
   if (isLoading && page === 1) {
@@ -118,7 +156,6 @@ export default function PopularHotel() {
         }
         renderItem={({ item }) => {
           const itemId = String(item.id);
-          const isFav = !!favorites[itemId];
           const hotelName = item.name || item.title || "Untitled Hotel";
           const hotelRating = Number(item.rating || item.avg_rating || 0);
 
@@ -143,13 +180,13 @@ export default function PopularHotel() {
                 />
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => toggleFavorite(itemId)}
+                  onPress={() => handleToggleFavourite(itemId)}
                   style={tw`absolute top-2.5 right-2.5 w-8 h-8 bg-white rounded-full items-center justify-center shadow-xs z-10`}
                 >
                   <Heart
                     size={16}
                     color="#F95700"
-                    fill={isFav ? "#F95700" : "transparent"}
+                    fill={item?.is_favorite ? "#F95700" : "transparent"}
                   />
                 </TouchableOpacity>
               </View>

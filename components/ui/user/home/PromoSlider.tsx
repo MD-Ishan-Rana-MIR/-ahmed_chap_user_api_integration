@@ -42,6 +42,7 @@ const BANNERS: BannerItem[] = [
     title: "Fresh Groceries\nDelivered Fast",
     subtitle: "Get organic items delivered right to your doorstep",
     buttonText: "Shop Now",
+    link: "/shops" as BannerLink,
     image: require("../../../../assets/product/product.png"),
   },
   {
@@ -75,13 +76,11 @@ const PromoSlider = () => {
         <View style={tw`w-[62%] z-10 justify-between h-full py-1`}>
           <View>
             <Text
-              style={tw`text-white font-Manrope-Bold.ttf text-[16px] leading-6 tracking-tight mb-2`}
+              style={tw`text-white font-bold text-[16px] leading-6 tracking-tight mb-2`}
             >
               {item.title}
             </Text>
-            <Text
-              style={tw`text-white/85  font-Manrope-Regular.ttf text-xs leading-4 mb-4`}
-            >
+            <Text style={tw`text-white/85 text-xs leading-4 mb-4`}>
               {item.subtitle}
             </Text>
           </View>
@@ -90,9 +89,13 @@ const PromoSlider = () => {
           <TouchableOpacity
             activeOpacity={0.85}
             style={tw`bg-white self-start flex-row items-center rounded-full pl-4 pr-1.5 py-1.5 gap-2`}
-            onPress={() => item.link && router.push(item?.link)}
+            onPress={() => {
+              if (item.link) {
+                router.push(item.link);
+              }
+            }}
           >
-            <Text style={tw`text-[#F15A24] font-Manrope-Bold.ttf text-xs`}>
+            <Text style={tw`text-[#F15A24] font-bold text-xs`}>
               {item.buttonText}
             </Text>
             <View
@@ -125,7 +128,6 @@ const PromoSlider = () => {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         horizontal
-        pagingEnabled
         showsHorizontalScrollIndicator={false}
         snapToInterval={SLIDE_WIDTH}
         decelerationRate="fast"
@@ -135,7 +137,7 @@ const PromoSlider = () => {
       />
 
       {/* Pagination Dots */}
-      <View style={tw`flex-row justify-center items-center mt-2 gap-1.5`}>
+      <View style={tw`flex-row justify-center items-center mt-3 gap-1.5`}>
         {BANNERS.map((_, index) => {
           const isActive = activeIndex === index;
           return (

@@ -27,7 +27,7 @@ import { NearHotelCard } from "../user/hotel/NearHotelCard";
 import { PopularHotelCard } from "../user/hotel/PopularHotelCard";
 import HotelSearchCard from "./HotelSearchCard";
 
-export default function HotelList({ category }) {
+export default function HotelList({ category }: { category: string }) {
   const insets = useSafeAreaInsets();
 
   // Hotel State
@@ -56,6 +56,7 @@ export default function HotelList({ category }) {
     data: response,
     isLoading: isPopularLoading,
     isFetching: isPopularFetching,
+    refetch,
   } = useGetPopularHotelsQuery({
     page,
     perPage: 5,
@@ -208,12 +209,7 @@ export default function HotelList({ category }) {
           contentContainerStyle={tw`gap-3.5 px-5 pb-2`}
         >
           {propertiesList.map((item: any) => (
-            <PopularHotelCard
-              key={item.id}
-              item={item}
-              isFavorite={!!hotelFavorites[item.id]}
-              onToggleFavorite={handleToggleHotelFavorite}
-            />
+            <PopularHotelCard key={item.id} item={item} refetch={refetch} />
           ))}
 
           {isPopularFetching && page > 1 && (

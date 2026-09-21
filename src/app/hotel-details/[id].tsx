@@ -1,21 +1,33 @@
 import { useUserProfileQuery } from "@/redux/authApi";
-import { useHotelDetailsQuery } from "@/redux/hotelApi";
 import {
-    Feather,
-    FontAwesome5,
-    Ionicons,
-    MaterialIcons,
+  useHotelDetailsQuery,
+  useToggleFavoriteHotelMutation,
+} from "@/redux/hotelApi";
+import {
+  Feather,
+  FontAwesome5,
+  Ionicons,
+  MaterialIcons,
 } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { formatCurrency } from "react-native-format-currency";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import HotelBookingModal, {
-    BookingSelection,
+  BookingSelection,
 } from "../../../components/ui/HotelBookingModal";
 import HotelDetailsSkeleton from "../../../components/ui/skeleton/HotelDetailsSkeleton";
+import { errorMsg } from "../../../lib/msg/errorMsg";
+import { successMsg } from "../../../lib/msg/successMsg";
 import tw from "../../../lib/tailwind";
 
 // Mock Data
@@ -100,7 +112,44 @@ export default function HotelDetailsScreen() {
   const { data, isLoading } = useHotelDetailsQuery(id);
   const { data: userProfile } = useUserProfileQuery({});
 
+  // console.log(data?.data?.property?.is_favorite);
+
   const maxLength = 120;
+
+  // ======================================== Favorite Hotel Api =============================================
+
+  const [toggleFavoriteHotel] = useToggleFavoriteHotelMutation();
+
+  const handleToggleFavourite = (id: string) => {
+    Alert.alert(
+      "Update Favorite",
+      "Are you sure you want to change this item's favorite status?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Confirm",
+          style: "default",
+          onPress: async () => {
+            try {
+              const res = await toggleFavoriteHotel(id).unwrap();
+              if (res) {
+                return successMsg(res?.message);
+              }
+            } catch (error: any) {
+              const errorMessage =
+                error?.data?.message ||
+                error?.message ||
+                "An unexpected error occurred.";
+              return errorMsg(errorMessage);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   if (isLoading) {
     return <HotelDetailsSkeleton />;
@@ -149,14 +198,21 @@ export default function HotelDetailsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              onPressIn={() => {
+                handleToggleFavourite(data?.data?.property?.id);
+              }}
               activeOpacity={0.8}
               onPress={() => setIsFavorite((prev) => !prev)}
               style={tw`w-10 h-10 rounded-full bg-white justify-center items-center shadow-md`}
             >
               <Ionicons
-                name={isFavorite ? "heart" : "heart-outline"}
+                name={
+                  data?.data?.property?.is_favorite ? "heart" : "heart-outline"
+                }
                 size={20}
-                color={isFavorite ? "#FF5A1F" : "#1F2937"}
+                color={
+                  data?.data?.property?.is_favorite ? "#FF5A1F" : "#1F2937"
+                }
               />
             </TouchableOpacity>
           </View>

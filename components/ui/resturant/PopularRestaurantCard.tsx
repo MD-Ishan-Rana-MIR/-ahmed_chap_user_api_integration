@@ -1,4 +1,5 @@
 import { useToggleFavrouiteResMutation } from "@/redux/restaurantsApi";
+import { router } from "expo-router";
 import { Heart, MapPin, Star } from "lucide-react-native";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import tw from "twrnc";
@@ -20,12 +21,10 @@ export interface PopularRestaurant {
 
 interface PopularRestaurantCardProps {
   item: PopularRestaurant;
-  onPress?: (item: PopularRestaurant) => void;
 }
 
 export default function PopularRestaurantCard({
   item,
-  onPress,
 }: PopularRestaurantCardProps) {
   // ===================================== Restaurant add Favourite Api =======================================
 
@@ -66,7 +65,12 @@ export default function PopularRestaurantCard({
   return (
     <TouchableOpacity
       activeOpacity={0.9}
-      onPress={() => onPress?.(item)}
+      onPress={() =>
+        router.push({
+          pathname: "/restaurants_details/[id]",
+          params: { id: item?.id },
+        })
+      }
       style={tw`bg-[#FCFCFC] border border-gray-100 rounded-2xl p-2.5 w-60 mr-4 shadow-xs`}
     >
       {/* Image Container with Floating Heart Button */}
