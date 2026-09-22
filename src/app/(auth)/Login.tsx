@@ -54,7 +54,6 @@ const Login = () => {
       };
 
       const res = await login(payload).unwrap();
-      console.log("res", res?.data?.user?.role);
 
       if (res?.data?.token && res?.data?.user?.role === "USER") {
         // 3. Save Token & Coordinates to AsyncStorage

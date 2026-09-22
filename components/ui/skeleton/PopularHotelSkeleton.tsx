@@ -32,7 +32,7 @@ export function PopularHotelSkeletonItem() {
 
 // Skeleton List showing multiple placeholder cards
 export default function PopularHotelSkeletonList({
-  count = 4,
+  count = 14,
 }: {
   count?: number;
 }) {

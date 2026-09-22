@@ -12,7 +12,6 @@ import Term from "../../../components/ui/user/profile/Term";
 
 export default function ProfileLink() {
   const { id } = useLocalSearchParams();
-  console.log(id);
 
   if (id === "personal-info") {
     return <PersonalInformation />;

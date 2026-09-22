@@ -51,7 +51,6 @@ export default function NearbyRestaurantCard({
                 return successMsg(res?.message);
               }
             } catch (error: any) {
-              console.log("errr is", error);
               const errorMessage =
                 error?.data?.message ||
                 error?.message ||

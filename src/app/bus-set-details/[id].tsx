@@ -1,162 +1,184 @@
+import { useBusDetailsQuery } from "@/redux/busApi";
+import { router, useLocalSearchParams } from "expo-router";
 import { Armchair, Bath, Plug, Snowflake } from "lucide-react-native";
-import { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SvgXml } from "react-native-svg";
 import BackButton from "../../../components/ui/BackButton";
 import { busShowIcon, driverIcon } from "../../../lib/icon";
 import tw from "../../../lib/tailwind";
 
-type SeatStatus = "available" | "booked" | "selected";
-
-interface Seat {
-  id: string; // e.g., "1A"
-  row: number;
-  col: "A" | "B" | "C" | "D";
-  status: SeatStatus;
+// Data structures reflecting backend response
+interface APISeat {
+  id: string;
+  seat_number: string;
+  seat_type: string;
+  is_available: boolean;
 }
 
-const INITIAL_SEATS: Seat[] = [
-  // Row 1
-  { id: "1A", row: 1, col: "A", status: "booked" },
-  { id: "1B", row: 1, col: "B", status: "available" },
-  { id: "1C", row: 1, col: "C", status: "booked" },
-  { id: "1D", row: 1, col: "D", status: "booked" },
-  // Row 2
-  { id: "2A", row: 2, col: "A", status: "selected" },
-  { id: "2B", row: 2, col: "B", status: "selected" },
-  { id: "2C", row: 2, col: "C", status: "selected" },
-  { id: "2D", row: 2, col: "D", status: "selected" },
-  // Row 3
-  { id: "3A", row: 3, col: "A", status: "available" },
-  { id: "3B", row: 3, col: "B", status: "booked" },
-  { id: "3C", row: 3, col: "C", status: "available" },
-  { id: "3D", row: 3, col: "D", status: "available" },
-  // Row 4
-  { id: "4A", row: 4, col: "A", status: "available" },
-  { id: "4B", row: 4, col: "B", status: "available" },
-  { id: "4C", row: 4, col: "C", status: "available" },
-  { id: "4D", row: 4, col: "D", status: "available" },
-  // Row 5
-  { id: "5A", row: 5, col: "A", status: "available" },
-  { id: "5B", row: 5, col: "B", status: "available" },
-  { id: "5C", row: 5, col: "C", status: "available" },
-  { id: "5D", row: 5, col: "D", status: "booked" },
-  // Row 6
-  { id: "6A", row: 6, col: "A", status: "available" },
-  { id: "6B", row: 6, col: "B", status: "available" },
-  { id: "6C", row: 6, col: "C", status: "available" },
-  { id: "6D", row: 6, col: "D", status: "available" },
-  // Row 7
-  { id: "7A", row: 7, col: "A", status: "booked" },
-  { id: "7B", row: 7, col: "B", status: "booked" },
-  { id: "7C", row: 7, col: "C", status: "available" },
-  { id: "7D", row: 7, col: "D", status: "available" },
-  // Row 8
-  { id: "8A", row: 8, col: "A", status: "available" },
-  { id: "8B", row: 8, col: "B", status: "available" },
-  { id: "8C", row: 8, col: "C", status: "available" },
-  { id: "8D", row: 8, col: "D", status: "available" },
-  // Row 9
-  { id: "9A", row: 9, col: "A", status: "available" },
-  { id: "9B", row: 9, col: "B", status: "available" },
-  { id: "9C", row: 9, col: "C", status: "available" },
-  { id: "9D", row: 9, col: "D", status: "available" },
-  // Row 10
-  { id: "10A", row: 10, col: "A", status: "available" },
-  { id: "10B", row: 10, col: "B", status: "available" },
-  { id: "10C", row: 10, col: "C", status: "available" },
-  { id: "10D", row: 10, col: "D", status: "available" },
-];
+interface SeatRow {
+  row: number;
+  is_back_row: boolean;
+  left?: APISeat[];
+  right?: APISeat[];
+  back_seats?: APISeat[];
+}
 
 export default function SeatSelectionScreen() {
-  const [seats, setSeats] = useState<Seat[]>(INITIAL_SEATS);
+  const { id, travel_date } = useLocalSearchParams();
+  const { data: apiResponse, isLoading } = useBusDetailsQuery({
+    id,
+    travel_date,
+  });
 
-  const toggleSeat = (id: string) => {
-    setSeats((prev) =>
-      prev.map((seat) => {
-        if (seat.id === id) {
-          if (seat.status === "available")
-            return { ...seat, status: "selected" };
-          if (seat.status === "selected")
-            return { ...seat, status: "available" };
-        }
-        return seat;
-      }),
-    );
+  const busData = apiResponse?.data?.bus;
+  const seatMap: SeatRow[] = apiResponse?.data?.seat_map || [];
+
+  // Track user-selected seat objects
+  const [selectedSeats, setSelectedSeats] = useState<APISeat[]>([]);
+
+  console.log("selectedSeats", selectedSeats?.length);
+
+  // Toggle seat with max 4-seat limit
+  const toggleSeatSelection = (seat: APISeat) => {
+    const isAlreadySelected = selectedSeats.some((s) => s.id === seat.id);
+
+    if (isAlreadySelected) {
+      setSelectedSeats((prev) => prev.filter((s) => s.id !== seat.id));
+    } else {
+      if (selectedSeats.length >= 4) {
+        Alert.alert("Limit Reached", "You can select a maximum of 4 seats.");
+        return;
+      }
+      setSelectedSeats((prev) => [...prev, seat]);
+    }
   };
 
-  const getSeatByPos = (row: number, col: "A" | "B" | "C" | "D") => {
-    return seats.find((s) => s.row === row && s.col === col);
+  const pricePerSeat = busData?.price_per_seat || 0;
+  const currency = busData?.currency || "KES";
+
+  const totalPrice = useMemo(
+    () => selectedSeats.length * pricePerSeat,
+    [selectedSeats, pricePerSeat],
+  );
+
+  // Formatted string of selected seat numbers (e.g., "1, 2")
+  const selectedSeatNumbers = useMemo(
+    () => selectedSeats.map((s) => s.seat_number).join(", "),
+    [selectedSeats],
+  );
+
+  const handleContinue = () => {
+    if (selectedSeats.length === 0) return;
+
+    const routeId = Array.isArray(id) ? id[0] : id;
+    const routeTravelDate = Array.isArray(travel_date)
+      ? travel_date[0]
+      : travel_date;
+
+    router.push({
+      pathname: "/passanger-info/[id]",
+      params: {
+        id: routeId,
+        bus_id: routeId,
+        travel_date: routeTravelDate,
+        selected_seat_ids: selectedSeats.map((s) => s.id).join(","),
+        selected_seat_numbers: selectedSeatNumbers,
+        total_price: totalPrice,
+        totalSeat: selectedSeats?.length,
+        currency: apiResponse?.data?.bus?.currency,
+      },
+    });
   };
 
-  const renderSeatBox = (row: number, col: "A" | "B" | "C" | "D") => {
-    const seat = getSeatByPos(row, col);
-    if (!seat) return <View style={tw`w-11 h-11`} />;
+  const renderSeatBox = (seat: APISeat) => {
+    const isSelected = selectedSeats.some((s) => s.id === seat.id);
+    const isBooked = !seat.is_available;
 
-    if (seat.status === "booked") {
+    // Booked seats rendered with BLACK background
+    if (isBooked) {
       return (
         <View
-          style={tw`w-11 h-11 rounded-xl bg-[#646A79] items-center justify-center`}
+          key={seat.id}
+          style={tw`w-10 h-10 rounded-xl bg-black items-center justify-center`}
         >
-          <Armchair size={20} color="#FFFFFF" />
+          <Armchair size={18} color="#FFFFFF" />
         </View>
       );
     }
 
-    if (seat.status === "selected") {
+    if (isSelected) {
       return (
         <TouchableOpacity
+          key={seat.id}
           activeOpacity={0.8}
-          onPress={() => toggleSeat(seat.id)}
-          style={tw`w-11 h-11 rounded-xl bg-[#F95700] items-center justify-center`}
+          onPress={() => toggleSeatSelection(seat)}
+          style={tw`w-10 h-10 rounded-xl bg-[#F95700] items-center justify-center`}
         >
-          <Armchair size={20} color="#FFFFFF" />
+          <Armchair size={18} color="#FFFFFF" />
         </TouchableOpacity>
       );
     }
 
     return (
       <TouchableOpacity
+        key={seat.id}
         activeOpacity={0.8}
-        onPress={() => toggleSeat(seat.id)}
-        style={tw`w-11 h-11 rounded-xl border border-gray-200 bg-white`}
-      />
+        onPress={() => toggleSeatSelection(seat)}
+        style={tw`w-10 h-10 rounded-xl border border-gray-200 bg-white items-center justify-center`}
+      >
+        <Text style={tw`text-[10px] text-gray-500 font-medium`}>
+          {seat.seat_number}
+        </Text>
+      </TouchableOpacity>
     );
   };
 
+  if (isLoading) {
+    return (
+      <View style={tw`flex-1 justify-center items-center bg-white`}>
+        <ActivityIndicator size="large" color="#F95700" />
+      </View>
+    );
+  }
+
   return (
     <View style={tw`flex-1 bg-white`}>
-      <BackButton title="View Seats" />
+      <BackButton title="Select Seats" />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={tw`px-5 mt-5 pb-36`}
       >
         {/* Top Ticket Summary Header */}
-        <View style={tw` border border-[#E7E9EF] p-3 rounded-[12px] `}>
-          <View style={tw`flex-row justify-between items-center `}>
+        <View style={tw`border border-[#E7E9EF] p-3 rounded-[12px]`}>
+          <View style={tw`flex-row justify-between items-center`}>
             <View style={tw`flex-row items-center gap-x-2`}>
               <SvgXml xml={busShowIcon} width={33} height={20} />
-              <Text
-                style={tw`text-[16px] font-Manrope-SemiBold.ttf text-blackText `}
-              >
-                Rahman Travels
+              <Text style={tw`text-[16px] font-semibold text-black`}>
+                {busData?.name || "Bus Service"}
               </Text>
             </View>
-            <Text style={tw`text-[#F86B17] text-sm font-Manrope-SemiBold.ttf `}>
-              32 Seat Left
+            <Text style={tw`text-[#F86B17] text-sm font-semibold`}>
+              {busData?.available_seats_count ?? 0} Seats Left
             </Text>
           </View>
 
           {/* Route Time & Timeline */}
           <View style={tw`flex-row justify-between items-center my-4`}>
             <View>
-              <Text style={tw`text-black font-Manrope-Regular.ttf text-[16px]`}>
-                08:00
+              <Text style={tw`text-black font-semibold text-[16px]`}>
+                {busData?.departure_time}
               </Text>
-              <Text
-                style={tw`text-[#6D717F] text-[10px] font-Manrope-Regular.ttf `}
-              >
-                Jakarta
+              <Text style={tw`text-[#6D717F] text-[10px]`}>
+                {busData?.departure_place}
               </Text>
             </View>
 
@@ -166,7 +188,7 @@ export default function SeatSelectionScreen() {
                 style={tw`flex-1 border-b border-dashed border-gray-300 mx-1`}
               />
               <Text style={tw`text-[11px] text-gray-400 font-medium px-1`}>
-                9h 30m
+                {busData?.journey_duration}
               </Text>
               <View
                 style={tw`flex-1 border-b border-dashed border-gray-300 mx-1`}
@@ -175,59 +197,35 @@ export default function SeatSelectionScreen() {
             </View>
 
             <View style={tw`items-end`}>
-              <Text style={tw`text-black font-Manrope-Regular.ttf text-[16px]`}>
-                10:30
+              <Text style={tw`text-black font-semibold text-[16px]`}>
+                {busData?.destination_time}
               </Text>
-              <Text
-                style={tw`text-[#6D717F] text-[10px] font-Manrope-Regular.ttf `}
-              >
-                Surabaya
+              <Text style={tw`text-[#6D717F] text-[10px]`}>
+                {busData?.destination_place}
               </Text>
             </View>
           </View>
 
           {/* Amenities Row */}
-          <View style={tw`flex-row items-center justify-between  px-1`}>
+          <View style={tw`flex-row items-center justify-between px-1`}>
             <View style={tw`flex-row items-center gap-x-1.5`}>
               <Snowflake size={14} color="#111827" />
-              <Text
-                style={tw`text-[10px] font-Manrope-Regular.ttf  text-blackText `}
-              >
-                AC
-              </Text>
+              <Text style={tw`text-[10px] text-black`}>AC</Text>
             </View>
-
             <View style={tw`h-3 w-[1px] bg-gray-200`} />
-
             <View style={tw`flex-row items-center gap-x-1.5`}>
               <Armchair size={14} color="#111827" />
-              <Text
-                style={tw`text-[10px] font-Manrope-Regular.ttf  text-blackText `}
-              >
-                Reclining Seat
-              </Text>
+              <Text style={tw`text-[10px] text-black`}>Reclining Seat</Text>
             </View>
-
             <View style={tw`h-3 w-[1px] bg-gray-200`} />
-
             <View style={tw`flex-row items-center gap-x-1.5`}>
               <Plug size={14} color="#111827" />
-              <Text
-                style={tw`text-[10px] font-Manrope-Regular.ttf  text-blackText `}
-              >
-                USB Charger
-              </Text>
+              <Text style={tw`text-[10px] text-black`}>USB Charger</Text>
             </View>
-
             <View style={tw`h-3 w-[1px] bg-gray-200`} />
-
             <View style={tw`flex-row items-center gap-x-1.5`}>
               <Bath size={14} color="#111827" />
-              <Text
-                style={tw`text-[10px] font-Manrope-Regular.ttf  text-blackText `}
-              >
-                Toilet
-              </Text>
+              <Text style={tw`text-[10px] text-black`}>Toilet</Text>
             </View>
           </View>
         </View>
@@ -240,10 +238,13 @@ export default function SeatSelectionScreen() {
             />
             <Text style={tw`text-xs text-gray-700 font-medium`}>Available</Text>
           </View>
+
+          {/* Booked Indicator Updated to Black */}
           <View style={tw`flex-row items-center gap-x-2`}>
-            <View style={tw`w-4 h-4 rounded-full bg-[#646A79]`} />
-            <Text style={tw`text-xs text-gray-700 font-medium`}>Booked</Text>
+            <View style={tw`w-4 h-4 rounded-full bg-black`} />
+            <Text style={tw`text-xs text-black font-medium`}>Booked</Text>
           </View>
+
           <View style={tw`flex-row items-center gap-x-2`}>
             <View style={tw`w-4 h-4 rounded-full bg-[#F95700]`} />
             <Text style={tw`text-xs text-gray-700 font-medium`}>Selected</Text>
@@ -254,7 +255,7 @@ export default function SeatSelectionScreen() {
         <View
           style={tw`bg-white border border-gray-100 rounded-3xl p-5 shadow-xs`}
         >
-          {/* Top Bus Controls (Door & Steering Wheel) */}
+          {/* Top Bus Controls */}
           <View style={tw`flex-row justify-between items-center mb-6`}>
             <View
               style={tw`px-6 py-2.5 border border-gray-200 rounded-2xl bg-white`}
@@ -266,72 +267,78 @@ export default function SeatSelectionScreen() {
             </View>
           </View>
 
-          {/* Column Headers */}
-          <View style={tw`flex-row items-center mb-4`}>
-            <View style={tw`flex-row gap-x-3 w-[100px] justify-between px-1`}>
-              <Text
-                style={tw`w-11 text-center font-bold text-gray-800 text-base`}
-              >
-                A
-              </Text>
-              <Text
-                style={tw`w-11 text-center font-bold text-gray-800 text-base`}
-              >
-                B
-              </Text>
-            </View>
-            <View style={tw`flex-1`} />
-            <View style={tw`flex-row gap-x-3 w-[100px] justify-between px-1`}>
-              <Text
-                style={tw`w-11 text-center font-bold text-gray-800 text-base`}
-              >
-                C
-              </Text>
-              <Text
-                style={tw`w-11 text-center font-bold text-gray-800 text-base`}
-              >
-                D
-              </Text>
-            </View>
-          </View>
-
-          {/* Seat Grid (Rows 1 to 10) */}
+          {/* Dynamic Seat Map Rendering */}
           <View style={tw`gap-y-3`}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rowNum) => (
-              <View key={rowNum} style={tw`flex-row items-center`}>
-                {/* Left Side Seats (A & B) */}
-                <View style={tw`flex-row gap-x-3`}>
-                  {renderSeatBox(rowNum, "A")}
-                  {renderSeatBox(rowNum, "B")}
-                </View>
+            {seatMap.map((rowItem) => {
+              if (rowItem.is_back_row) {
+                return (
+                  <View
+                    key={`row-${rowItem.row}`}
+                    style={tw`mt-2 pt-3 border-t border-gray-100`}
+                  >
+                    <View
+                      style={tw`flex-row justify-between items-center px-1`}
+                    >
+                      {rowItem.back_seats?.map((seat) => renderSeatBox(seat))}
+                    </View>
+                  </View>
+                );
+              }
 
-                {/* Center Row Number */}
-                <Text
-                  style={tw`flex-1 text-center font-bold text-gray-900 text-base`}
+              return (
+                <View
+                  key={`row-${rowItem.row}`}
+                  style={tw`flex-row items-center justify-between`}
                 >
-                  {rowNum}
-                </Text>
+                  {/* Left Side Seats */}
+                  <View style={tw`flex-row gap-x-2`}>
+                    {rowItem.left?.map((seat) => renderSeatBox(seat))}
+                  </View>
 
-                {/* Right Side Seats (C & D) */}
-                <View style={tw`flex-row gap-x-3`}>
-                  {renderSeatBox(rowNum, "C")}
-                  {renderSeatBox(rowNum, "D")}
+                  {/* Row Number */}
+                  <Text
+                    style={tw`flex-1 text-center font-bold text-gray-900 text-base`}
+                  >
+                    {rowItem.row}
+                  </Text>
+
+                  {/* Right Side Seats */}
+                  <View style={tw`flex-row gap-x-2`}>
+                    {rowItem.right?.map((seat) => renderSeatBox(seat))}
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
       </ScrollView>
 
-      {/* Floating Bottom Action Buttons */}
+      {/* Floating Bottom Action Bar */}
       <View
-        style={tw`absolute bottom-4 border-t border-[#EAEAEA]  left-0 right-0 bg-white px-5 py-6 flex-row gap-x-3`}
+        style={tw`absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-5 py-4 flex-row justify-between items-center`}
       >
+        <View style={tw`flex-1 mr-3`}>
+          <Text style={tw`text-xs text-gray-500`} numberOfLines={1}>
+            {selectedSeats.length > 0
+              ? `${selectedSeats.length}/4 Seat${
+                  selectedSeats.length > 1 ? "s" : ""
+                } Selected (${selectedSeatNumbers})`
+              : "0/4 Seats Selected"}
+          </Text>
+          <Text style={tw`text-lg font-bold text-black`}>
+            {currency} {totalPrice.toFixed(2)}
+          </Text>
+        </View>
+
         <TouchableOpacity
           activeOpacity={0.8}
-          style={tw`flex-1 bg-[#57720F] py-3.5 rounded-full items-center justify-center`}
+          onPress={handleContinue}
+          disabled={selectedSeats.length === 0}
+          style={tw`bg-[#F95700] px-6 py-3.5 rounded-full items-center justify-center ${
+            selectedSeats.length === 0 ? "opacity-50" : "opacity-100"
+          }`}
         >
-          <Text style={tw`text-white font-semibold text-sm`}>Edit Details</Text>
+          <Text style={tw`text-white font-semibold text-sm`}>Continue</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -158,7 +158,6 @@ export default function DeliveryAddress() {
         }));
       }
     } catch (error) {
-      console.log("Geocoding error:", error);
       setErrors((prev) => ({
         ...prev,
         location: "Error fetching coordinates",

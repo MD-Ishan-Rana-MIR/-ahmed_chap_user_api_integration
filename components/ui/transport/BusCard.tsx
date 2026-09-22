@@ -16,6 +16,7 @@ export interface BusCardData {
   duration: string;
   isAC: boolean;
   logoBg?: string;
+  travel_date: string | null;
 }
 
 interface BusCardProps {
@@ -24,7 +25,7 @@ interface BusCardProps {
 }
 
 export default function BusCard({ bus, onSelectSeat }: BusCardProps) {
-  const id = 10;
+  console.log(bus);
   return (
     <View
       style={tw`bg-[#fff] border border-gray-100 rounded-2xl p-4 shadow-xs mb-4`}
@@ -126,7 +127,7 @@ export default function BusCard({ bus, onSelectSeat }: BusCardProps) {
         onPress={() =>
           router.push({
             pathname: "/bus-details/[id]",
-            params: { id: id },
+            params: { travel_date: bus?.travel_date, id: bus?.id },
           })
         }
         style={tw`bg-[#FFF4EF] py-2.5 rounded-xl items-center justify-center`}

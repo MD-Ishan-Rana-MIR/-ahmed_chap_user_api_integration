@@ -1,69 +1,140 @@
 import { router } from "expo-router";
-import { FlatList, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import tw from "twrnc";
 import BusCard, { BusCardData } from "./BusCard";
+// import { BusItem, useGetBusesQuery } from "./busesApi";
+// import { BusSkeleton } from "./BusSkeleton";
+import { BusItem, useGetBusesQuery } from "@/redux/busApi";
+import { BusSkeleton } from "../skeleton/BusSkeleton";
 import SearchCard from "./SearchCard";
 
-const BUS_LIST: BusCardData[] = [
-  {
-    id: "1",
-    operator: "Rahman Travels",
-    type: "Regular AC • 2-2 Seating",
-    price: "$150.00",
-    seatsLeft: 32,
-    departureTime: "08:00",
-    arrivalTime: "10:30",
-    origin: "Jakarta",
-    destination: "Surabaya",
-    duration: "9h 30m",
-    isAC: true,
-    logoBg: "bg-[#523AEB]",
-  },
-  {
-    id: "2",
-    operator: "Rahman Travels",
-    type: "Non AC • 2-2 Seating",
-    price: "$85.00",
-    seatsLeft: 18,
-    departureTime: "08:00",
-    arrivalTime: "10:30",
-    origin: "Jakarta",
-    destination: "Surabaya",
-    duration: "9h 30m",
-    isAC: false,
-    logoBg: "bg-[#2A3B5C]",
-  },
-];
-
 export default function Transport() {
-  const handleSelectSeat = (bus: BusCardData) => {
-    console.log("Selected Bus ID:", bus.id);
+  const [searchParams, setSearchParams] = useState({
+    departure_place: "",
+    destination_place: "",
+    travel_date: "",
+  });
+
+  const [page, setPage] = useState<number>(1);
+
+  const { data, isLoading, isFetching, refetch } = useGetBusesQuery({
+    ...searchParams,
+    page,
+    per_page: 15,
+  });
+
+  const busesList = data?.data?.buses || [];
+  const pagination = data?.data?.pagination;
+  const totalBuses = pagination?.total || 0;
+  const hasMore = pagination?.has_more || false;
+
+  // Infinite Scroll Handler
+  const handleLoadMore = () => {
+    if (!isFetching && hasMore) {
+      setPage((prevPage) => prevPage + 1);
+    }
   };
 
+  // Pull to Refresh Handler
+  const handleRefresh = () => {
+    setPage(1);
+    // refetch();
+  };
+
+  // Search Submit Handler
   const handleSearchBus = (params: any) => {
-    console.log("Search parameters:", params);
+    setSearchParams({
+      departure_place: params?.departure || "Dhaka",
+      destination_place: params?.destination || "Chittagong",
+      travel_date: params?.date || "",
+    });
+    setPage(1);
+  };
+
+  const handleSelectSeat = (bus: BusCardData) => {};
+
+  // Adapter function to match BusItem -> BusCardData
+  const mapBusToCardData = (item: BusItem): BusCardData => ({
+    id: item.id.toString(),
+    operator: item.operator?.business_name || item.name,
+    type: `${item.bus_type} • ${item.seat_pattern} Seating`,
+    price: `${item.currency === "KES" ? "KSh " : "$"}${item.price_per_seat.toFixed(2)}`,
+    seatsLeft: item.available_seats_count,
+    departureTime: item.departure_time,
+    arrivalTime: item.destination_time,
+    origin: item.departure_place,
+    destination: item.destination_place,
+    duration: item.journey_duration,
+    isAC: item.bus_type.toUpperCase().includes("AC"),
+    logoBg: "bg-[#523AEB]",
+    travel_date: item?.travel_date,
+  });
+
+  // Footer Component for Loading More Pages
+  const renderFooter = () => {
+    if (!isFetching || page === 1) return null;
+    return (
+      <View style={tw`py-4 items-center justify-center`}>
+        <ActivityIndicator size="small" color="#F95700" />
+      </View>
+    );
+  };
+
+  // Not Found / Empty Component
+  const renderEmptyState = () => {
+    if (isLoading) return null;
+    return (
+      <View style={tw`items-center justify-center py-16 px-4`}>
+        <View
+          style={tw`w-20 h-20 bg-orange-50 rounded-full items-center justify-center mb-4`}
+        >
+          <Text style={tw`text-3xl`}>🚌</Text>
+        </View>
+        <Text style={tw`text-base font-bold text-gray-900 mb-1 text-center`}>
+          No Buses Found
+        </Text>
+        <Text
+          style={tw`text-xs text-gray-500 text-center leading-5 max-w-[260px]`}
+        >
+          We couldn't find any available buses from{" "}
+          {searchParams.departure_place} to {searchParams.destination_place}.
+          Try changing route or travel date.
+        </Text>
+      </View>
+    );
   };
 
   return (
-    <View style={tw`flex-1 bg-[#fff]`}>
+    <View style={tw`flex-1 bg-white`}>
       <FlatList
-        data={BUS_LIST}
-        keyExtractor={(item) => item.id}
+        data={busesList}
+        keyExtractor={(item) => item.id.toString()}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={tw`p-4 pb-10`}
         ListHeaderComponent={
           <>
             {/* Reusable Search Bar Component */}
-            <SearchCard onSearch={handleSearchBus} />
+            <SearchCard onSearch={handleSearchBus} isLoading={isLoading} />
 
             {/* Header Title Section */}
-            <View style={tw`flex-row justify-between items-center mb-3 px-1`}>
+            <View
+              style={tw`flex-row justify-between items-center mb-3 px-1 mt-2`}
+            >
               <Text style={tw`text-sm font-bold text-gray-900`}>
-                26 Buss are Available
+                {totalBuses} {totalBuses === 1 ? "Bus is" : "Buses are"}{" "}
+                Available
               </Text>
               <TouchableOpacity
                 onPress={() => {
-                  router.push("/all-transport");
+                  router.push(`/all-transport?data=${busesList}`);
                 }}
                 activeOpacity={0.7}
               >
@@ -72,11 +143,38 @@ export default function Transport() {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Skeleton Loading State for initial load */}
+            {isLoading && page === 1 && (
+              <View>
+                <BusSkeleton />
+                <BusSkeleton />
+                <BusSkeleton />
+                <BusSkeleton />
+                <BusSkeleton />
+                <BusSkeleton />
+              </View>
+            )}
           </>
         }
         renderItem={({ item }) => (
-          <BusCard bus={item} onSelectSeat={handleSelectSeat} />
+          <BusCard
+            bus={mapBusToCardData(item)}
+            onSelectSeat={handleSelectSeat}
+          />
         )}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmptyState}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && page === 1}
+            onRefresh={handleRefresh}
+            colors={["#F95700"]}
+            tintColor="#F95700"
+          />
+        }
       />
     </View>
   );

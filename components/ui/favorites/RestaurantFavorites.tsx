@@ -70,7 +70,6 @@ export default function RestaurantFavorites() {
                 return successMsg(res?.message);
               }
             } catch (error: any) {
-              console.log("errr is", error);
               const errorMessage =
                 error?.data?.message ||
                 error?.message ||

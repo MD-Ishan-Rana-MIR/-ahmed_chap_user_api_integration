@@ -60,8 +60,6 @@ const REVIEWS = [
 export default function ProductDetails() {
   const { id } = useLocalSearchParams<{ id?: string; title?: string }>();
 
-  console.log(id);
-
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -149,8 +147,6 @@ export default function ProductDetails() {
   if (isLoading) {
     <ProductDetailsSkeleton />;
   }
-
-  console.log("", id);
 
   return (
     <View style={tw`flex-1 bg-[#F6F6F6]`}>

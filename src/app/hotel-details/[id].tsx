@@ -112,8 +112,6 @@ export default function HotelDetailsScreen() {
   const { data, isLoading } = useHotelDetailsQuery(id);
   const { data: userProfile } = useUserProfileQuery({});
 
-  // console.log(data?.data?.property?.is_favorite);
-
   const maxLength = 120;
 
   // ======================================== Favorite Hotel Api =============================================

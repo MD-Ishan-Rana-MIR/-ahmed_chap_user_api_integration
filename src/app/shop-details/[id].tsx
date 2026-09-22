@@ -96,7 +96,6 @@ export default function ShopDetails() {
                 return successMsg(res?.message);
               }
             } catch (error: any) {
-              console.log("errr is", error);
               const errorMessage =
                 error?.data?.message ||
                 error?.message ||
@@ -340,8 +339,6 @@ export default function ShopDetails() {
   // --- Render Main Products Item ---
   const renderProductItem = ({ item }: { item: any }) => {
     const itemImage = item?.primary_image || item?.images?.[0];
-
-    console.log("item", item?.is_favorite);
 
     return (
       <TouchableOpacity

@@ -51,7 +51,6 @@ export default function Cart() {
 
     try {
     } catch (error: any) {
-      console.log(error);
       const errorMessage =
         error?.data?.message || error?.message || "Failed to update quantity.";
       errorMsg(errorMessage);
