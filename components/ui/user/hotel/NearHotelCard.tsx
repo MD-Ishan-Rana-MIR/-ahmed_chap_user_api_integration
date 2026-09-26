@@ -31,7 +31,9 @@ export const NearHotelCard = memo(({ item, refetch }: NearHotelCardProps) => {
   const [toggleFavoriteHotel] = useToggleFavoriteHotelMutation();
 
   const handleToggleFavourite = (id?: string | number) => {
-    if (id === undefined || id === null) return;
+    console.log("Selected ID for favorite toggle:", id);
+
+    if (id === undefined || id === null || id === "") return;
 
     Alert.alert(
       "Update Favorite",
@@ -47,20 +49,27 @@ export const NearHotelCard = memo(({ item, refetch }: NearHotelCardProps) => {
           onPress: async () => {
             try {
               const res = await toggleFavoriteHotel(String(id)).unwrap();
+
               if (res) {
-                refetch();
-                return successMsg(res?.message);
+                if (typeof refetch === "function") {
+                  refetch();
+                }
+                successMsg(res?.message || "Favorite status updated!");
               }
             } catch (error: any) {
+              console.error("Toggle favorite error:", error);
+
               const errorMessage =
                 error?.data?.message ||
                 error?.message ||
                 "An unexpected error occurred.";
-              return errorMsg(errorMessage);
+
+              errorMsg(errorMessage);
             }
           },
         },
       ],
+      { cancelable: true },
     );
   };
 

@@ -49,6 +49,13 @@
           "style": "dark"
         }
       ],
+      [
+        "react-native-auth0",
+        {
+          "domain": "dev-2ydlyuoyjkqmbzwp.us.auth0.com",
+          "customScheme": "Chalapus-User-App"
+        }
+      ],
       "expo-font",
       "@react-native-community/datetimepicker",
       "expo-image",
