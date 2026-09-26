@@ -5,6 +5,7 @@ import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useForm } from "react-hook-form";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useAuth0 } from "react-native-auth0";
 import { SvgXml } from "react-native-svg";
 import CustomInput from "../../../components/CustomInput";
 import PasswordInput from "../../../components/PasswordInput";
@@ -19,6 +20,8 @@ interface LoginFormInputs {
   password: string;
 }
 const Login = () => {
+  const { authorize, clearSession, user, isLoading: socialLogin } = useAuth0();
+
   const {
     control,
     handleSubmit,
@@ -61,6 +64,7 @@ const Login = () => {
 
         if (latitude !== null && longitude !== null) {
           await Promise.all([
+            // AsyncStorage.setItem("latitude", latitude.toString()),
             AsyncStorage.setItem("latitude", latitude.toString()),
             AsyncStorage.setItem("longitude", longitude.toString()),
           ]);
@@ -78,6 +82,17 @@ const Login = () => {
         error?.message ||
         "An unexpected error occurred.";
       return errorMsg(errorMessage);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await authorize({
+        customScheme: "auth0sample",
+        scope: "openid profile email",
+      });
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -212,7 +227,7 @@ const Login = () => {
           <View style={tw`flex-row justify-center items-center gap-x-4 mt-6`}>
             <TouchableOpacity
               style={tw` flex flex-row items-center justify-center gap-x-1.5 border border-[#D2D2D2]   w-full  py-3.5 rounded-[8px] `}
-              onPress={() => {}}
+              onPress={handleGoogleLogin}
             >
               <SvgXml xml={googleIcon} width={18} height={18} />
               <Text

@@ -47,6 +47,14 @@ export const authApi = baseApi.injectEndpoints({
         method : "DELETE"
       }),
       invalidatesTags : ["Auth"]
+    }),
+    userProfileUpdate : builder.mutation({
+      query : (formData)=>({
+        url : `/profile`,
+        method : "POST",
+        body : formData
+      }),
+      invalidatesTags : ["Auth"]
     })
 
 
@@ -60,7 +68,8 @@ export const {
   useUserProfileQuery,
   useLogoutMutation,
   useChangePasswordMutation,
-  useDeleteProfileMutation
+  useDeleteProfileMutation,
+  useUserProfileUpdateMutation
 
 
 } = authApi;
