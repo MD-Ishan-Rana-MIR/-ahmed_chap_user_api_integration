@@ -1,17 +1,23 @@
+import { useHotelBookingMutation } from "@/redux/hotelApi";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
 import {
-    Modal,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { errorMsg } from "../../lib/msg/errorMsg";
+import { successMsg } from "../../lib/msg/successMsg";
 import tw from "../../lib/tailwind";
+import Button from "./Button";
 
 const DAYS_HEADER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -50,17 +56,19 @@ export interface BookingSelection {
 interface HotelBookingModalProps {
   visible: boolean;
   onClose: () => void;
-  onApply: (data: BookingSelection) => void;
   title?: string;
+  hotelId?: string[] | number;
 }
 
 export default function HotelBookingModal({
   visible,
   onClose,
-  onApply,
   title = "Select Date & Time",
+  hotelId,
 }: HotelBookingModalProps) {
   const insets = useSafeAreaInsets();
+
+  const [hotelBooking, { isLoading: hotelLoading }] = useHotelBookingMutation();
 
   const [viewDate, setViewDate] = useState(new Date());
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -68,7 +76,7 @@ export default function HotelBookingModal({
   const [checkInInput, setCheckInInput] = useState("");
   const [checkOutInput, setCheckOutInput] = useState("");
   const [rooms, setRooms] = useState("1");
-  const [guests, setGuests] = useState("2");
+  const [guests, setGuests] = useState("");
 
   // Reset state whenever modal opens
   useEffect(() => {
@@ -170,16 +178,57 @@ export default function HotelBookingModal({
     return time >= startDate.getTime() && time <= endDate.getTime();
   };
 
-  const handleContinue = () => {
-    onApply({
-      startDate,
-      endDate,
-      rooms,
-      guests,
-    });
-    onClose();
-  };
+  const handleContinue = async () => {
+    if (!startDate || !endDate) {
+      return errorMsg("Please select both check-in and check-out dates.");
+    }
 
+    if (!guests || guests.trim() === "") {
+      return errorMsg("Please enter a valid phone number.");
+    }
+
+    const payload = {
+      hotel_id: hotelId,
+      check_in_date: formatDateToString(startDate),
+      check_out_date: formatDateToString(endDate),
+      rooms_booked: Number(rooms) || 1,
+      phone_number: guests.trim(),
+    };
+
+    console.log(payload);
+
+    try {
+      const res = await hotelBooking(payload).unwrap();
+      onClose();
+
+      if (res) {
+        Alert.alert(
+          "Booking Confirmed!",
+          res?.message ||
+            "Your hotel reservation has been placed successfully.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                onClose();
+                if (typeof successMsg === "function") {
+                  successMsg(res?.message || "Booking successful!");
+                }
+              },
+            },
+          ],
+          { cancelable: false },
+        );
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        "An unexpected error occurred.";
+
+      return errorMsg(errorMessage);
+    }
+  };
   const today = new Date();
 
   return (
@@ -220,197 +269,212 @@ export default function HotelBookingModal({
               <Ionicons name="close" size={20} color="#1F2937" />
             </TouchableOpacity>
           </View>
-
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={tw`p-5`}
+          <KeyboardAwareScrollView
+            enableOnAndroid
+            extraScrollHeight={80}
+            keyboardShouldPersistTaps="handled"
           >
-            {/* Calendar Card Container */}
-            <View
-              style={tw`border border-gray-100 rounded-3xl p-4 bg-white mb-6`}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={tw`p-5`}
             >
-              {/* Month Selector Header */}
-              <View style={tw`flex-row justify-between items-center mb-6 px-2`}>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => changeMonth("prev")}
-                  style={tw`p-1.5 rounded-full bg-gray-50`}
+              {/* Calendar Card Container */}
+              <View
+                style={tw`border border-gray-100 rounded-3xl p-4 bg-white mb-6`}
+              >
+                {/* Month Selector Header */}
+                <View
+                  style={tw`flex-row justify-between items-center mb-6 px-2`}
                 >
-                  <Ionicons name="chevron-back" size={18} color="#4B5563" />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => changeMonth("prev")}
+                    style={tw`p-1.5 rounded-full bg-gray-50`}
+                  >
+                    <Ionicons name="chevron-back" size={18} color="#4B5563" />
+                  </TouchableOpacity>
 
-                <View style={tw`flex-row items-center gap-1.5`}>
-                  <Text style={tw`text-base font-bold text-[#1F2937]`}>
-                    {viewDate.toLocaleDateString("en-US", {
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </Text>
-                  <Ionicons name="chevron-down" size={14} color="#4B5563" />
+                  <View style={tw`flex-row items-center gap-1.5`}>
+                    <Text style={tw`text-base font-bold text-[#1F2937]`}>
+                      {viewDate.toLocaleDateString("en-US", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </Text>
+                    <Ionicons name="chevron-down" size={14} color="#4B5563" />
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => changeMonth("next")}
+                    style={tw`p-1.5 rounded-full bg-gray-50`}
+                  >
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color="#4B5563"
+                    />
+                  </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => changeMonth("next")}
-                  style={tw`p-1.5 rounded-full bg-gray-50`}
-                >
-                  <Ionicons name="chevron-forward" size={18} color="#4B5563" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Days Header */}
-              <View style={tw`flex-row mb-3`}>
-                {DAYS_HEADER.map((day, idx) => (
-                  <Text
-                    key={idx}
-                    style={tw`flex-1 text-center text-xs font-semibold text-gray-400`}
-                  >
-                    {day}
-                  </Text>
-                ))}
-              </View>
-
-              {/* Dynamic Grid */}
-              <View style={tw`flex-row flex-wrap`}>
-                {calendarGrid.map((item, index) => {
-                  const isStart = isSameDay(startDate, item.date);
-                  const isEnd = isSameDay(endDate, item.date);
-                  const isRange = isInRange(item.date);
-                  const isCurrentDay = isSameDay(today, item.date);
-
-                  return (
-                    <View
-                      key={index}
-                      style={[
-                        tw`h-11 items-center justify-center my-0.5`,
-                        { width: "14.28%" },
-                      ]}
+                {/* Days Header */}
+                <View style={tw`flex-row mb-3`}>
+                  {DAYS_HEADER.map((day, idx) => (
+                    <Text
+                      key={idx}
+                      style={tw`flex-1 text-center text-xs font-semibold text-gray-400`}
                     >
-                      {isRange && item.isCurrentMonth && (
-                        <View
-                          style={[
-                            tw`absolute top-0 bottom-0 left-0 right-0 bg-[#FFF0E8]`,
-                            isStart && tw`rounded-l-full`,
-                            isEnd && tw`rounded-r-full`,
-                          ]}
-                        />
-                      )}
+                      {day}
+                    </Text>
+                  ))}
+                </View>
 
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        disabled={!item.isCurrentMonth}
-                        onPress={() => handleDatePress(item.date)}
+                {/* Dynamic Grid */}
+                <View style={tw`flex-row flex-wrap`}>
+                  {calendarGrid.map((item, index) => {
+                    const isStart = isSameDay(startDate, item.date);
+                    const isEnd = isSameDay(endDate, item.date);
+                    const isRange = isInRange(item.date);
+                    const isCurrentDay = isSameDay(today, item.date);
+
+                    return (
+                      <View
+                        key={index}
                         style={[
-                          tw`w-10 h-10 rounded-full items-center justify-center relative`,
-                          (isStart || isEnd) && tw`bg-[#F25C05]`,
+                          tw`h-11 items-center justify-center my-0.5`,
+                          { width: "14.28%" },
                         ]}
                       >
-                        <Text
+                        {isRange && item.isCurrentMonth && (
+                          <View
+                            style={[
+                              tw`absolute top-0 bottom-0 left-0 right-0 bg-[#FFF0E8]`,
+                              isStart && tw`rounded-l-full`,
+                              isEnd && tw`rounded-r-full`,
+                            ]}
+                          />
+                        )}
+
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          disabled={!item.isCurrentMonth}
+                          onPress={() => handleDatePress(item.date)}
                           style={[
-                            tw`text-sm`,
-                            item.isCurrentMonth
-                              ? tw`text-[#374151]`
-                              : tw`text-gray-300`,
-                            isCurrentDay &&
-                              !isStart &&
-                              !isEnd &&
-                              tw`font-extrabold text-[#111827]`,
-                            (isStart || isEnd) && tw`text-white font-bold`,
+                            tw`w-10 h-10 rounded-full items-center justify-center relative`,
+                            (isStart || isEnd) && tw`bg-[#F25C05]`,
                           ]}
                         >
-                          {item.date.getDate()}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Check In / Check Out Inputs */}
-            <View style={tw`flex-row gap-3 mb-4`}>
-              <View style={tw`flex-1`}>
-                <Text style={tw`text-xs text-gray-500 mb-1.5 ml-1`}>
-                  Check In
-                </Text>
-                <View
-                  style={tw`border border-gray-100 rounded-full px-4 py-2.5 flex-row justify-between items-center bg-white`}
-                >
-                  <TextInput
-                    value={checkInInput}
-                    onChangeText={handleCheckInChangeText}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#9CA3AF"
-                    style={tw`text-xs text-gray-600 flex-1 p-0`}
-                  />
-                  <Ionicons name="calendar-outline" size={16} color="#9CA3AF" />
+                          <Text
+                            style={[
+                              tw`text-sm`,
+                              item.isCurrentMonth
+                                ? tw`text-[#374151]`
+                                : tw`text-gray-300`,
+                              isCurrentDay &&
+                                !isStart &&
+                                !isEnd &&
+                                tw`font-extrabold text-[#111827]`,
+                              (isStart || isEnd) && tw`text-white font-bold`,
+                            ]}
+                          >
+                            {item.date.getDate()}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
                 </View>
               </View>
 
-              <View style={tw`flex-1`}>
-                <Text style={tw`text-xs text-gray-500 mb-1.5 ml-1`}>
-                  Check Out
-                </Text>
-                <View
-                  style={tw`border border-gray-100 rounded-full px-4 py-2.5 flex-row justify-between items-center bg-white`}
-                >
-                  <TextInput
-                    value={checkOutInput}
-                    onChangeText={handleCheckOutChangeText}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#9CA3AF"
-                    style={tw`text-xs text-gray-600 flex-1 p-0`}
-                  />
-                  <Ionicons name="calendar-outline" size={16} color="#9CA3AF" />
+              {/* Check In / Check Out Inputs */}
+              <View style={tw`flex-row gap-3 mb-4`}>
+                <View style={tw`flex-1`}>
+                  <Text style={tw`text-xs text-gray-500 mb-1.5 ml-1`}>
+                    Check In
+                  </Text>
+                  <View
+                    style={tw`border border-gray-100 rounded-full px-4 py-2.5 flex-row justify-between items-center bg-white`}
+                  >
+                    <TextInput
+                      value={checkInInput}
+                      onChangeText={handleCheckInChangeText}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor="#9CA3AF"
+                      style={tw`text-xs text-gray-600 flex-1 p-0`}
+                    />
+                    <Ionicons
+                      name="calendar-outline"
+                      size={16}
+                      color="#9CA3AF"
+                    />
+                  </View>
+                </View>
+
+                <View style={tw`flex-1`}>
+                  <Text style={tw`text-xs text-gray-500 mb-1.5 ml-1`}>
+                    Check Out
+                  </Text>
+                  <View
+                    style={tw`border border-gray-100 rounded-full px-4 py-2.5 flex-row justify-between items-center bg-white`}
+                  >
+                    <TextInput
+                      value={checkOutInput}
+                      onChangeText={handleCheckOutChangeText}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor="#9CA3AF"
+                      style={tw`text-xs text-gray-600 flex-1 p-0`}
+                    />
+                    <Ionicons
+                      name="calendar-outline"
+                      size={16}
+                      color="#9CA3AF"
+                    />
+                  </View>
                 </View>
               </View>
-            </View>
 
-            {/* Number of Room */}
-            <View style={tw`mb-4`}>
-              <Text style={tw`text-xs text-gray-500 mb-1.5 ml-1`}>
-                Number of Room
-              </Text>
-              <View
-                style={tw`border border-gray-100 rounded-full px-4 py-2.5 bg-white`}
-              >
-                <TextInput
-                  value={rooms}
-                  onChangeText={setRooms}
-                  keyboardType="numeric"
-                  style={tw`text-xs text-gray-600 p-0`}
-                />
+              {/* Number of Room */}
+              <View style={tw`mb-4`}>
+                <Text style={tw`text-xs text-gray-500 mb-1.5 ml-1`}>
+                  Number of Room
+                </Text>
+                <View
+                  style={tw`border border-gray-100 rounded-full px-4 py-2.5 bg-white`}
+                >
+                  <TextInput
+                    value={rooms}
+                    onChangeText={setRooms}
+                    keyboardType="numeric"
+                    style={tw`text-xs text-gray-600 p-0`}
+                  />
+                </View>
               </View>
-            </View>
 
-            {/* Number of Guest */}
-            <View style={tw`mb-8`}>
-              <Text style={tw`text-xs text-gray-500 mb-1.5 ml-1`}>
-                Number of Guest
-              </Text>
-              <View
-                style={tw`border border-gray-100 rounded-full px-4 py-2.5 bg-white`}
-              >
-                <TextInput
-                  value={guests}
-                  onChangeText={setGuests}
-                  keyboardType="numeric"
-                  style={tw`text-xs text-gray-600 p-0`}
-                />
+              {/* Number of Guest */}
+              <View style={tw`mb-8`}>
+                <Text style={tw`text-xs text-gray-500 mb-1.5 ml-1`}>
+                  Phone Number
+                </Text>
+                <View
+                  style={tw`border border-gray-100 rounded-full px-4 py-2.5 bg-white`}
+                >
+                  <TextInput
+                    value={guests}
+                    onChangeText={setGuests}
+                    keyboardType="numeric"
+                    style={tw`text-xs text-gray-600 p-0`}
+                  />
+                </View>
               </View>
-            </View>
 
-            {/* Submit Button */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={handleContinue}
-              style={tw`bg-[#5B7410] py-4 rounded-full items-center justify-center`}
-            >
-              <Text style={tw`text-white font-semibold text-base`}>
-                Continue
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
+              {/* Submit Button */}
+              <Button
+                text="Continue"
+                onPress={handleContinue}
+                isLoading={hotelLoading}
+              />
+            </ScrollView>
+          </KeyboardAwareScrollView>
         </View>
       </View>
     </Modal>

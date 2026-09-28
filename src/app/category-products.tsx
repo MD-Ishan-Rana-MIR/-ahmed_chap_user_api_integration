@@ -55,6 +55,7 @@ export default function CategoryProductsScreen() {
         <RestaurantSection />
       </View>
     );
+  } else if (category?.toLocaleLowerCase() === "shops") {
+    return <ECommerce />;
   }
-  return <ECommerce />;
 }

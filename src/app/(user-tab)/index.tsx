@@ -47,6 +47,8 @@ const HomeScreen = () => {
 
   const { data } = useUserProfileQuery({});
 
+  console.log("data is", data?.data?.profile_photo_url);
+
   // ====================================================== Near Hotel API =====================================================
   const [npage, nsetPage] = useState(1);
   const [location, setLocation] = useState<{ lat: number; lon: number } | null>(
@@ -73,6 +75,8 @@ const HomeScreen = () => {
 
     fetchLocation();
   }, []);
+
+  // ====================================== Near Hotel Api ============================================
 
   const {
     data: nearData,
@@ -142,6 +146,7 @@ const HomeScreen = () => {
       >
         {/* User Info Section */}
         <TouchableOpacity
+          activeOpacity={9}
           onPress={() => {
             router.push("/(user-tab)/profile");
           }}

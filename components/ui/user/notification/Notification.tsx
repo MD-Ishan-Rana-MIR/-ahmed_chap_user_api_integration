@@ -19,10 +19,8 @@ import { successMsg } from "../../../../lib/msg/successMsg";
 import { NotificationItem } from "../../../../lib/type/notificationType";
 import { NotFoundState } from "../../../NotFoundState";
 import BackButton from "../../BackButton";
-import {
-  NotificationSkeletonCard,
-  NotificationSkeletonList,
-} from "../../skeleton/NotificationSkeletonList";
+import { NotificationCard } from "../../notification/NotificationCard";
+import { NotificationSkeletonList } from "../../skeleton/NotificationSkeletonList";
 
 export default function NotificationScreen() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
@@ -34,6 +32,8 @@ export default function NotificationScreen() {
     per_page: 15,
     filter,
   });
+
+  console.log("notification data is", data?.data);
 
   const [markAsRead] = useMarkAsReadMutation();
   const [markAllAsRead] = useMarkAllAsReadMutation();
@@ -110,10 +110,17 @@ export default function NotificationScreen() {
 
   const handleMarkAllRead = async () => {
     try {
-      await markAllAsRead().unwrap();
+      const res = (await markAllAsRead().unwrap()) as
+        | { message?: string }
+        | undefined;
       setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
-    } catch (err) {
-      console.error("Failed to mark all as read:", err);
+      return successMsg(res?.message ?? "All notifications marked as read");
+    } catch (error: any) {
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        "An unexpected error occurred.";
+      return errorMsg(errorMessage);
     }
   };
 
@@ -126,44 +133,53 @@ export default function NotificationScreen() {
 
       {/* 2. Filter Tabs */}
       <View
-        style={tw`flex-row items-center px-4 py-3 border-b border-gray-100 gap-2`}
+        style={tw`flex-row items-center justify-between px-4 py-3 border-b border-gray-100 gap-2`}
       >
-        <TouchableOpacity
-          onPress={() => handleFilterChange("all")}
-          style={tw`px-4 py-1.5 rounded-full ${
-            filter === "all" ? "bg-[#5B7410]" : "bg-gray-200"
-          }`}
-        >
-          <Text
-            style={tw`text-xs font-semibold ${
-              filter === "all" ? "text-white" : "text-gray-700"
+        <View style={tw`flex flex-row items-center justify-between gap-x-6`}>
+          <TouchableOpacity
+            onPress={() => handleFilterChange("all")}
+            style={tw`px-4 py-1.5 rounded-full ${
+              filter === "all" ? "bg-[#5B7410]" : "bg-gray-200"
             }`}
           >
-            All
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => handleFilterChange("unread")}
-          style={tw`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 ${
-            filter === "unread" ? "bg-[#5B7410]" : "bg-gray-200"
-          }`}
-        >
-          <Text
-            style={tw`text-xs font-semibold ${
-              filter === "unread" ? "text-white" : "text-gray-700"
-            }`}
-          >
-            Unread
-          </Text>
-          {unreadCount > 0 && (
-            <View
-              style={tw`bg-red-500 rounded-full px-1.5 py-0.2 items-center justify-center`}
+            <Text
+              style={tw`text-xs font-semibold ${
+                filter === "all" ? "text-white" : "text-gray-700"
+              }`}
             >
-              <Text style={tw`text-white text-[10px] font-bold`}>
-                {unreadCount}
-              </Text>
-            </View>
+              All
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => handleFilterChange("unread")}
+            style={tw`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 ${
+              filter === "unread" ? "bg-[#5B7410]" : "bg-gray-200"
+            }`}
+          >
+            <Text
+              style={tw`text-xs font-semibold ${
+                filter === "unread" ? "text-white" : "text-gray-700"
+              }`}
+            >
+              Unread
+            </Text>
+            {unreadCount > 0 && (
+              <View
+                style={tw`bg-red-500 rounded-full px-1.5 py-0.2 items-center justify-center`}
+              >
+                <Text style={tw`text-white text-[10px] font-bold`}>
+                  {unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity activeOpacity={0.9} onPress={handleMarkAllRead}>
+          {unreadCount > 0 && (
+            <Text style={tw`px-4  rounded-full bg-[#5B7410] text-white py-1 `}>
+              ReadAll
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -177,7 +193,7 @@ export default function NotificationScreen() {
           data={notifications}
           keyExtractor={(item, index) => `${item.id}-${index}`}
           renderItem={({ item }) => (
-            <NotificationSkeletonCard item={item} onPress={handleItemPress} />
+            <NotificationCard item={item} onPress={handleItemPress} />
           )}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.4}

@@ -292,15 +292,14 @@ export default function PersonalInformation() {
       setValue("address", profile.address || "");
       setValue("lat", profile.lat || "");
       setValue("lon", profile.lon || "");
-      if (profile.profile_picture) {
-        setProfileImage(profile.profile_picture);
+      if (profile.profile_photo_url) {
+        setProfileImage(profile.profile_photo_url);
       }
     }
   }, [profile, setValue]);
 
   // ================= Image Picker Handler =================
 
-  // ================= Image Picker Handler =================
   const handlePickImage = async () => {
     try {
       const permissionResult =
@@ -315,16 +314,22 @@ export default function PersonalInformation() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.IMAGES, // Updated API to fix deprecation warning
+        mediaTypes: ["images"], // Expo SDK 50+ updated syntax
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const selectedUri = result.assets[0].uri;
-        setProfileImage(selectedUri);
-        setValue("profile_picture", selectedUri, { shouldDirty: true });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const selectedImage = result.assets[0];
+
+        setProfileImage(selectedImage.uri);
+
+        // react-hook-form এ শুধু string URI না রেখে FormData Object বা File Details সেভ করুন
+        setValue("profile_picture", selectedImage.uri, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
       }
     } catch (error) {
       console.error("ImagePicker Error:", error);
@@ -416,18 +421,11 @@ export default function PersonalInformation() {
 
     // ৩. React Native Standard Image Append
     if (data.profile_picture) {
-      const fileUri = data.profile_picture;
-      const filename = fileUri.split("/").pop() || "profile.jpg";
+      const licenseResponse = await fetch(data.profile_picture);
+      console.log(licenseResponse);
+      const licenseBlob = await licenseResponse.blob();
 
-      // File Extension থেকে type তৈরি করা
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image/jpeg`;
-
-      formData.append("profile_picture", {
-        uri: fileUri,
-        name: filename,
-        type: type,
-      } as any);
+      formData.append("profile_photo", licenseBlob, "profiler.jpeg");
     }
 
     // ৪. Alert Dialog handling with async onPress
@@ -447,6 +445,7 @@ export default function PersonalInformation() {
                 );
               }
             } catch (error: any) {
+              console.log("Profile update error is", error);
               const errorMessage =
                 error?.data?.message ||
                 error?.message ||

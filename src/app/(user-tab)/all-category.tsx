@@ -13,10 +13,10 @@ import tw from "../../../lib/tailwind";
 const SERVICES_DATA: ServiceItem[] = [
   { id: "1", name: "Shops", icon: shopIcon, slug: "shops" },
   { id: "2", name: "Hotels", icon: hotelIcon, slug: "hotels" },
-  { id: "3", name: "Restaurant", icon: resturantIcon, slug: "transports" },
-  { id: "4", name: "Transports", icon: transportIcon, slug: "hotels" },
-  { id: "5", name: "Hotels", icon: hotelIcon, slug: "shops" },
-  { id: "6", name: "Shops", icon: shopIcon, slug: "transports" },
+  { id: "3", name: "Restaurant", icon: resturantIcon, slug: "restaurants" },
+  { id: "4", name: "Transports", icon: transportIcon, slug: "transport" },
+  { id: "5", name: "Hotels", icon: hotelIcon, slug: "hotels" },
+  { id: "6", name: "Shops", icon: shopIcon, slug: "shops" },
 ];
 
 export default function AllCategoryScreen() {

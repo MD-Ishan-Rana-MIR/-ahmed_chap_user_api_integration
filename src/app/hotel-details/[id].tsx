@@ -22,9 +22,7 @@ import {
 } from "react-native";
 import { formatCurrency } from "react-native-format-currency";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import HotelBookingModal, {
-  BookingSelection,
-} from "../../../components/ui/HotelBookingModal";
+import HotelBookingModal from "../../../components/ui/HotelBookingModal";
 import HotelDetailsSkeleton from "../../../components/ui/skeleton/HotelDetailsSkeleton";
 import { errorMsg } from "../../../lib/msg/errorMsg";
 import { successMsg } from "../../../lib/msg/successMsg";
@@ -106,8 +104,9 @@ export default function HotelDetailsScreen() {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const [modal1Visible, setModal1Visible] = useState(false);
-  const [booking1, setBooking1] = useState<BookingSelection | null>(null);
   const { id } = useLocalSearchParams();
+
+  console.log("parents id is", id);
 
   const { data, isLoading } = useHotelDetailsQuery(id);
   const { data: userProfile } = useUserProfileQuery({});
@@ -396,7 +395,7 @@ export default function HotelDetailsScreen() {
         visible={modal1Visible}
         title="Select Primary Booking"
         onClose={() => setModal1Visible(false)}
-        onApply={(data) => setBooking1(data)}
+        hotelId={id}
       />
     </View>
   );
