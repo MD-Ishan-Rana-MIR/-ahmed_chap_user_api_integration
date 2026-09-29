@@ -1,7 +1,11 @@
-import { useGetBusBookingsQuery } from "@/redux/busApi";
+import {
+  useCancelBookingMutation,
+  useGetBusBookingsQuery,
+} from "@/redux/busApi";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   RefreshControl,
@@ -10,8 +14,11 @@ import {
   View,
 } from "react-native";
 import tw from "twrnc";
+import { errorMsg } from "../../../lib/msg/errorMsg";
+import { successMsg } from "../../../lib/msg/successMsg";
 import { Booking } from "../../../lib/type/busType";
 import { NotFoundState } from "../../NotFoundState";
+import Button from "../Button";
 import { OrderSkeleton } from "../skeleton/OrderSkeleton";
 
 const STATUS_TABS = [
@@ -47,6 +54,40 @@ export default function MyBookingsScreen() {
   const handleRefresh = () => {
     setPage(1);
     refetch();
+  };
+
+  const [cancelBooking, { isLoading: cancelLoading }] =
+    useCancelBookingMutation();
+
+  const handleCancelBooking = (id: number | string) => {
+    Alert.alert(
+      "Cancel Booking",
+      "Are you sure you want to cancel this booking?",
+      [
+        {
+          text: "No",
+          style: "cancel",
+        },
+        {
+          text: "Yes, Cancel",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const res = await cancelBooking(id).unwrap();
+              if (res) {
+                return successMsg(res?.message);
+              }
+            } catch (error: any) {
+              const errorMessage =
+                error?.data?.message ||
+                error?.message ||
+                "An unexpected error occurred.";
+              return errorMsg(errorMessage);
+            }
+          },
+        },
+      ],
+    );
   };
 
   if (isLoading) {
@@ -141,14 +182,11 @@ export default function MyBookingsScreen() {
 
       {/* Action Button (Cancel) - Shown when paid/active */}
       {item.status === "paid" && (
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={tw`bg-[#F5F5F5] py-2 rounded-full items-center justify-center mt-3`}
-        >
-          <Text style={tw`text-gray-700 font-semibold text-xs`}>
-            Cancel Booking
-          </Text>
-        </TouchableOpacity>
+        <Button
+          text="Cancel Booking"
+          onPress={() => handleCancelBooking(item?.id)}
+          isLoading={cancelLoading}
+        />
       )}
     </View>
   );
