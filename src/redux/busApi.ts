@@ -133,8 +133,15 @@ export const busApi = baseApi.injectEndpoints({
             forceRefetch({ currentArg, previousArg }) {
                 return currentArg?.page !== previousArg?.page || currentArg?.filter !== previousArg?.filter;
             },
-            providesTags : ["Buses"]
+            providesTags: ["Buses"]
         }),
+        cancelBooking : builder.mutation({
+            query : (id)=>({
+                url : `/buses/bookings/${id}/cancel`,
+                method : "POST"
+            }),
+            invalidatesTags : ["Buses"]
+        })
     }),
 });
 
@@ -142,5 +149,6 @@ export const {
     useGetBusesQuery,
     useBusDetailsQuery,
     useBookingSeatMutation,
-    useGetBusBookingsQuery
+    useGetBusBookingsQuery,
+    useCancelBookingMutation
 } = busApi;
