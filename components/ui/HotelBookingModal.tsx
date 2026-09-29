@@ -195,8 +195,6 @@ export default function HotelBookingModal({
       phone_number: guests.trim(),
     };
 
-    console.log(payload);
-
     try {
       const res = await hotelBooking(payload).unwrap();
       onClose();

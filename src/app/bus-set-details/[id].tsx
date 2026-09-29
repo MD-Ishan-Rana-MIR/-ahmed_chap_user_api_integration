@@ -44,8 +44,6 @@ export default function SeatSelectionScreen() {
   // Track user-selected seat objects
   const [selectedSeats, setSelectedSeats] = useState<APISeat[]>([]);
 
-  console.log("selectedSeats", selectedSeats?.length);
-
   // Toggle seat with max 4-seat limit
   const toggleSeatSelection = (seat: APISeat) => {
     const isAlreadySelected = selectedSeats.some((s) => s.id === seat.id);

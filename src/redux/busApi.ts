@@ -53,7 +53,7 @@ export interface BusPagination {
 }
 
 export interface BusesApiResponse {
-    status: string;
+    filter: string;
     message: string;
     data: {
         buses: BusItem[];
@@ -100,26 +100,47 @@ export const busApi = baseApi.injectEndpoints({
             },
             providesTags: ["Buses"],
         }),
-        busDetails : builder.query({
-            query : ({id,travel_date})=>({
-                url : `/buses/${id}/seat-map?travel_date=${travel_date}`,
-                method : "GET"
+        busDetails: builder.query({
+            query: ({ id, travel_date }) => ({
+                url: `/buses/${id}/seat-map?travel_date=${travel_date}`,
+                method: "GET"
             }),
+            providesTags: ["Buses"]
+        }),
+        bookingSeat: builder.mutation({
+            query: (payload) => ({
+                url: `/buses/bookings`,
+                method: "POST",
+                body: payload
+            }),
+            invalidatesTags: ["Buses"]
+        }),
+        getBusBookings: builder.query({
+            query: ({ page = 1, filter }) => ({
+                url: `/buses/bookings`,
+                params: { page, filter },
+            }),
+            serializeQueryArgs: ({ endpointName, queryArgs }) => {
+                return `${endpointName}-${queryArgs.filter || "all"}`;
+            },
+            merge: (currentCache, responseData, { arg }) => {
+                if (arg.page === 1) {
+                    return responseData;
+                }
+                currentCache.data.bookings.push(...responseData.data.bookings);
+                currentCache.data.pagination = responseData.data.pagination;
+            },
+            forceRefetch({ currentArg, previousArg }) {
+                return currentArg?.page !== previousArg?.page || currentArg?.filter !== previousArg?.filter;
+            },
             providesTags : ["Buses"]
         }),
-        bookingSeat : builder.mutation({
-            query : (payload)=>({
-                url : `/buses/bookings`,
-                method : "POST",
-                body : payload
-            }),
-            invalidatesTags : ["Buses"]
-        })
     }),
 });
 
 export const {
     useGetBusesQuery,
     useBusDetailsQuery,
-    useBookingSeatMutation
+    useBookingSeatMutation,
+    useGetBusBookingsQuery
 } = busApi;

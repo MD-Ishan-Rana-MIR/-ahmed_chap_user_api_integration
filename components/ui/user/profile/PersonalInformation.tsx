@@ -358,7 +358,6 @@ export default function PersonalInformation() {
         const { latitude, longitude } = geocoded[0];
         setValue("lat", String(latitude), { shouldDirty: true });
         setValue("lon", String(longitude), { shouldDirty: true });
-        console.log("Geocoded Coordinates:", { latitude, longitude });
       }
     } catch (error) {
       console.error("Geocoding Error:", error);
@@ -422,7 +421,6 @@ export default function PersonalInformation() {
     // ৩. React Native Standard Image Append
     if (data.profile_picture) {
       const licenseResponse = await fetch(data.profile_picture);
-      console.log(licenseResponse);
       const licenseBlob = await licenseResponse.blob();
 
       formData.append("profile_photo", licenseBlob, "profiler.jpeg");
@@ -445,7 +443,6 @@ export default function PersonalInformation() {
                 );
               }
             } catch (error: any) {
-              console.log("Profile update error is", error);
               const errorMessage =
                 error?.data?.message ||
                 error?.message ||

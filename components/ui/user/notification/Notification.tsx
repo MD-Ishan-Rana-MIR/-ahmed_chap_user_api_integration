@@ -33,8 +33,6 @@ export default function NotificationScreen() {
     filter,
   });
 
-  console.log("notification data is", data?.data);
-
   const [markAsRead] = useMarkAsReadMutation();
   const [markAllAsRead] = useMarkAllAsReadMutation();
 

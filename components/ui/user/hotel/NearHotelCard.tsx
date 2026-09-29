@@ -31,8 +31,6 @@ export const NearHotelCard = memo(({ item, refetch }: NearHotelCardProps) => {
   const [toggleFavoriteHotel] = useToggleFavoriteHotelMutation();
 
   const handleToggleFavourite = (id?: string | number) => {
-    console.log("Selected ID for favorite toggle:", id);
-
     if (id === undefined || id === null || id === "") return;
 
     Alert.alert(

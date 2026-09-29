@@ -11,7 +11,6 @@ import tw from "../../../lib/tailwind";
 
 export default function BookingSummaryScreen() {
   const params = useLocalSearchParams();
-  console.log("params data is", params?.currency);
 
   // Dynamic parameters passed from previous screens with fallback dummy data matching the UI
 

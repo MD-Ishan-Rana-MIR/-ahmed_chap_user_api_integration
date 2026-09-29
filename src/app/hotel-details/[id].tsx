@@ -106,8 +106,6 @@ export default function HotelDetailsScreen() {
   const [modal1Visible, setModal1Visible] = useState(false);
   const { id } = useLocalSearchParams();
 
-  console.log("parents id is", id);
-
   const { data, isLoading } = useHotelDetailsQuery(id);
   const { data: userProfile } = useUserProfileQuery({});
 

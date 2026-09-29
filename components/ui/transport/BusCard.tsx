@@ -25,7 +25,6 @@ interface BusCardProps {
 }
 
 export default function BusCard({ bus, onSelectSeat }: BusCardProps) {
-  console.log(bus);
   return (
     <View
       style={tw`bg-[#fff] border border-gray-100 rounded-2xl p-4 shadow-xs mb-4`}
